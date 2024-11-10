@@ -94,10 +94,12 @@ toggle label sendToggle current
                     then (Css.rgb 0 128 0)
                     else (Css.rgb 128 0 0)
             ]
+        labelText
+            = if current then "on" else "off"
     in
     [
         HS.h4 [] [HS.text label]
-      , HS.button [HSE.onClick sendToggle, pressed, style] [HS.text "on"]
+      , HS.button [HSE.onClick sendToggle, pressed, style] [HS.text labelText]
     ]
 
 {-| A list of choices as a dropdown -}
