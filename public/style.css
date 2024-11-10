@@ -2,6 +2,10 @@ body {
     font-family: 'Nunito', sans-serif;
 }
 
+h1 {
+    margin-left: 2rem;
+}
+
 button {
     font-family: 'Nunito', sans-serif;
     font-size: 1rem;
