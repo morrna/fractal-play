@@ -22,7 +22,7 @@ jobs:
               run: npx elm make src/Main.elm --output=dist/fractal-play.js
             
             - name: Upload
-              uses: actions/upload-artifact@v3
+              uses: actions/upload-artifact@v4
               with:
                 path: dist
             
