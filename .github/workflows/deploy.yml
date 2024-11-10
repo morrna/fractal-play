@@ -1,0 +1,33 @@
+name: Deploy Fractal Play
+
+on:
+    push:
+        branches:
+            - trunk
+
+jobs:
+    deploy:
+        environment:
+            name: github-pages
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v3
+            - uses: actions/setup-node@v3
+            - run: npm install --global elm-tooling
+
+            - name: Copy static files
+              run: cp -r public/* dist/
+            
+            - name: Build
+              run: elm make src/Main.elm --output=dist/fractal-play.js
+            
+            - name: Upload
+              uses: actions/upload-artifact@v3
+              with:
+                path: dist
+            
+            - name: Deploy
+              uses: actions/deploy-pages@v4
+
+              
+
