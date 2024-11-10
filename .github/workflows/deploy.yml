@@ -16,8 +16,8 @@ jobs:
             - run: npm install --global elm-tooling
 
             - name: Copy static files
-              run: cp -r public/* dist/
-            
+              run: mkdir -p dist && cp -r public/* dist/
+
             - name: Build
               run: elm make src/Main.elm --output=dist/fractal-play.js
             
