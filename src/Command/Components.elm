@@ -91,8 +91,8 @@ toggle label sendToggle current
             = HSA.css [
                 Css.backgroundColor <|
                     if current
-                    then (Css.rgb 0 128 0)
-                    else (Css.rgb 128 0 0)
+                    then (Css.rgb 76 175 80)    -- Lighter green (#4CAF50)
+                    else (Css.rgb 244 67 54)    -- Lighter red (#F44336)
             ]
         labelText
             = if current then "on" else "off"
