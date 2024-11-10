@@ -22,7 +22,7 @@ jobs:
             - run: npm install --global elm-tooling
 
             - name: Copy static files
-              run: mkdir -p dist && cp -r public/* dist/ && cp LICENSE dist/
+              run: mkdir -p dist && cp -r public/* dist/ && cp LICENSE dist/LICENSE.txt
 
             - name: Build
               run: npx elm make src/Main.elm --output=dist/fractal-play.js
