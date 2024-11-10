@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fractal Play</title>
+</head>
+<body>
+  <!-- Static HTML content -->
+  <header>
+    <h1>Fractal Play</h1>
+  </header>
+
+  <!-- Elm will render inside this div -->
+  <div id="fractal-play"></div>
+
+  <!-- Include the compiled Elm JavaScript -->
+  <script src="fractal-play.js"></script>
+
+  <!-- Initialize the Elm app -->
+  <script>
+    Elm.Main.init({
+      node: document.getElementById('fractal-play')
+    });
+  </script>
+
+  <footer>
+    <p><a href="LICENSE">© 2024 Nathan Morrison</a></p>
+  </footer>
+</body>
+</html>

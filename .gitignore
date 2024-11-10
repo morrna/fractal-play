@@ -1,0 +1,8 @@
+elm-stuff
+
+# npm
+node_modules
+package-lock.json
+
+# ignore generated site
+dist/
