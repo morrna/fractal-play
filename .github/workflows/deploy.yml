@@ -19,7 +19,7 @@ jobs:
               run: mkdir -p dist && cp -r public/* dist/
 
             - name: Build
-              run: elm make src/Main.elm --output=dist/fractal-play.js
+              run: npx elm make src/Main.elm --output=dist/fractal-play.js
             
             - name: Upload
               uses: actions/upload-artifact@v3
