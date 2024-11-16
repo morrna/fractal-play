@@ -13,6 +13,7 @@ module Space.Content exposing (
     )
 
 import Svg.Styled as S
+import Set
 
 import Space.TreeID as ID
 import Space.Shape as Shape
@@ -121,10 +122,14 @@ appendIterShapes mode contents
         iterShapes
             = List.map makeIterShape
                 <| IterFrame.iterateShapes mode iterFrameDefs shapeDefs
+        allShapes
+            = if Set.member 0 mode.hiddenLayers
+                then iterShapes
+                else shapes ++ iterShapes
     in
         if mode.showIterFrames
-        then shapes ++ iterShapes ++ iterFrames
-        else shapes ++ iterShapes
+        then allShapes ++ iterFrames
+        else allShapes
 
 
 getIterFrameDefs : List Content -> (List Content, List (ID.TreeID, IterFrame.Def))

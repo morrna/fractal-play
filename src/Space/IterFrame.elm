@@ -110,6 +110,7 @@ type alias Mode
       , showIterFrames : Bool
         -- Layers to hide
         -- Convention: 1 is the first iteration
+        --   0 represents the base shapes
       , hiddenLayers : Set.Set Int
     }
 
