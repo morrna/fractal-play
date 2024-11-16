@@ -108,6 +108,8 @@ type alias Mode
         depth: Int
       , hueShift : Float
       , showIterFrames : Bool
+        -- Layers to hide
+        -- Convention: 1 is the first iteration
       , hiddenLayers : Set.Set Int
     }
 
@@ -123,11 +125,28 @@ iterateShapes
     -> List (ID.TreeID, Shape.Def)
     -> List (ID.TreeID, Shape.Def)
 iterateShapes mode ifdefs sdefs
-    = if mode.depth <= 0
+    = iterateShapesWithIndex mode mode.depth 1 ifdefs sdefs
+
+iterateShapesWithIndex
+    : Mode
+    -> Int -- current depth
+    -> Int -- current index
+    -> List (ID.TreeID, Def)
+    -> List (ID.TreeID, Shape.Def)
+    -> List (ID.TreeID, Shape.Def)
+iterateShapesWithIndex mode currentDepth currentIndex ifdefs sdefs
+    = if currentDepth <= 0
         then []
         else
-            let newSdefs = singleIteration mode ifdefs sdefs
-            in newSdefs ++ (iterateShapes { mode | depth = mode.depth-1 } ifdefs newSdefs)
+            let
+                newSdefs = singleIteration mode ifdefs sdefs
+                newDepth = currentDepth - 1
+                newIndex = currentIndex + 1
+            in
+                if Set.member currentIndex mode.hiddenLayers then
+                    iterateShapesWithIndex mode newDepth newIndex ifdefs newSdefs
+                else
+                    newSdefs ++ (iterateShapesWithIndex mode newDepth newIndex ifdefs newSdefs)
 
 singleIteration
     : Mode
