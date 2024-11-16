@@ -12,6 +12,7 @@ module Space.IterFrame exposing (
 import Svg.Styled as S
 import Svg.Styled.Attributes as SA
 import List
+import Set
 import Color as C
 
 import Geometry as G
@@ -107,13 +108,14 @@ type alias Mode
         depth: Int
       , hueShift : Float
       , showIterFrames : Bool
+      , hiddenLayers : Set.Set Int
     }
 
 {-| Default mode for initializing -}
 initMode
     : Mode
 initMode
-    = {depth = 6, hueShift = (0.618034 * 8/7), showIterFrames = True}
+    = {depth = 6, hueShift = (0.618034 * 8/7), showIterFrames = True, hiddenLayers = Set.empty}
 
 iterateShapes
     : Mode
