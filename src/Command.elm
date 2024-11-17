@@ -8,6 +8,7 @@ module Command exposing (
 import Html.Styled as HS
 import List
 import Maybe
+import Set
 
 import Space
 import Space.Content as Content
@@ -18,6 +19,7 @@ import Command.Components exposing (
       , incrementerDefaults
       , toggle
       , choice
+      , textButtonGroup
     )
 
 {-| Interactions with the command controls outside the drawing space -}
@@ -26,6 +28,7 @@ type Message
     | ToggleShowIterFrames
     | ChangeNumIterFrames Int
     | Reset Start.Which
+    | UpdateHiddenLayers (Set.Set Int)
 
 {-| Display a vertical bar with controls for configuration.
     Currently this includes the maximum iteration depth and whether to show
@@ -40,15 +43,27 @@ viewBar {iterMode, baseContents}
                 ("Sierpinski triangle", Reset Start.Sierpinski)
               , ("Dragon", Reset Start.Dragon)
             ]
+        ++ toggle "show iteration frames" ToggleShowIterFrames iterMode.showIterFrames
         ++ incrementer
             { incrementerDefaults | label = "maximum iteration depth" , min = Just 0}
             ChangeIterationDepth
             iterMode.depth
-        ++ toggle "show iteration frames" ToggleShowIterFrames iterMode.showIterFrames
+        ++ layerVisibilityControls iterMode.depth
         ++ incrementer
             { incrementerDefaults | label = "# iteration frames" , min = Just 0}
             ChangeNumIterFrames
             (Content.numIterFrames baseContents)
+
+layerVisibilityControls : Int -> List (HS.Html Message)
+layerVisibilityControls iterationDepth
+    = textButtonGroup "layer visibility"
+        [
+            ("Show All Layers", UpdateHiddenLayers Set.empty)
+            , (
+                "Show Last Layer"
+                , UpdateHiddenLayers (Set.fromList (List.range 0 (iterationDepth - 1)))
+            )
+        ]
 
 {-| Update the model based on events from the command controls. -}
 update
@@ -81,6 +96,11 @@ update msg model =
                 else model
         Reset whichStart
             -> Start.get whichStart
+        UpdateHiddenLayers newHiddenLayers
+            -> { model |
+                iterMode = let oldIterMode = model.iterMode
+                    in { oldIterMode | hiddenLayers = newHiddenLayers }
+            }
 
 {-| Get the ID of the iter frame to drop when the number of iter frames is
     reduced.

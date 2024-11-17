@@ -5,6 +5,7 @@ module Command.Components exposing (
       , incrementerDefaults
       , toggle
       , choice
+      , textButtonGroup
     )
 
 import Html.Styled as HS
@@ -116,4 +117,29 @@ choice label choices
                     HS.option [HSE.onClick msg] [HS.text choiceText]
                 )
                 choices
+    ]
+
+{-| A group of buttons with text labels and a header -}
+textButtonGroup
+    : String  -- ^ Header text
+    -> List ( String, msg )  -- ^ List of (label, message) pairs
+    -> List (HS.Html msg)
+textButtonGroup header buttons
+    = [
+        HS.div [ HSA.css [Css.marginTop (Css.px 10)] ]
+            ( HS.h4 [] [ HS.text header ]
+                :: List.map
+                    (\(label, msg) ->
+                        HS.button
+                            [
+                                HSA.css [
+                                    Css.marginRight (Css.px 5)
+                                  , Css.marginLeft (Css.px 5)
+                                ]
+                              , HSE.onClick msg
+                            ]
+                            [ HS.text label ]
+                    )
+                    buttons
+            )
     ]
