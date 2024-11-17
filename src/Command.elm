@@ -12,6 +12,7 @@ import Set
 
 import Space
 import Space.Content as Content
+import Space.IterFrame as IterFrame
 import Space.TreeID as ID
 import Start
 import Command.Components exposing (
@@ -28,7 +29,7 @@ type Message
     | ToggleShowIterFrames
     | ChangeNumIterFrames Int
     | Reset Start.Which
-    | UpdateHiddenLayers (Set.Set Int)
+    | UpdateOnlyShowLastLayer Bool
 
 {-| Display a vertical bar with controls for configuration.
     Currently this includes the maximum iteration depth and whether to show
@@ -48,21 +49,18 @@ viewBar {iterMode, baseContents}
             { incrementerDefaults | label = "maximum iteration depth" , min = Just 0}
             ChangeIterationDepth
             iterMode.depth
-        ++ layerVisibilityControls iterMode.depth
+        ++ layerVisibilityControls
         ++ incrementer
             { incrementerDefaults | label = "# iteration frames" , min = Just 0}
             ChangeNumIterFrames
             (Content.numIterFrames baseContents)
 
-layerVisibilityControls : Int -> List (HS.Html Message)
-layerVisibilityControls iterationDepth
+layerVisibilityControls : List (HS.Html Message)
+layerVisibilityControls
     = textButtonGroup "layer visibility"
         [
-            ("Show All Layers", UpdateHiddenLayers Set.empty)
-            , (
-                "Show Last Layer"
-                , UpdateHiddenLayers (Set.fromList (List.range 0 (iterationDepth - 1)))
-            )
+            ("Show All Layers", UpdateOnlyShowLastLayer False)
+          , ("Show Last Layer", UpdateOnlyShowLastLayer True)
         ]
 
 {-| Update the model based on events from the command controls. -}
@@ -96,10 +94,10 @@ update msg model =
                 else model
         Reset whichStart
             -> Start.get whichStart
-        UpdateHiddenLayers newHiddenLayers
+        UpdateOnlyShowLastLayer newOnlyShowLastLayer
             -> { model |
-                iterMode = let oldIterMode = model.iterMode
-                    in { oldIterMode | hiddenLayers = newHiddenLayers }
+                iterMode = IterFrame.updateOnlyShowLastLayer
+                    newOnlyShowLastLayer model.iterMode
             }
 
 {-| Get the ID of the iter frame to drop when the number of iter frames is
