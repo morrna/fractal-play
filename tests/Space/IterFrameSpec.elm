@@ -2,6 +2,7 @@ module Space.IterFrameSpec exposing (suite)
 
 import Test as T
 import Expect as E
+import Fuzz as F
 import Set
 import Color
 
@@ -19,6 +20,7 @@ iterationTests : T.Test
 iterationTests = T.describe "iteration functionality" [
         basicIteration
       , hiddenLayerTests
+      , modeUpdateTests
     ]
 
 basicIteration : T.Test
@@ -34,30 +36,51 @@ basicIteration = T.test "iterateShapes produces expected number of shapes with n
 
 hiddenLayerTests : T.Test
 hiddenLayerTests = T.describe "hidden layer functionality" [
-        T.test "hiding middle layer removes those shapes" <|
-            \_ ->
+        T.fuzz (F.intRange 0 20) "hiding all but last layer produces just one layer" <|
+            \depth ->
                 let
                     mode = { initMode | 
-                        depth = 3,
-                        hiddenLayers = Set.singleton 1  -- Hide middle layer
+                        depth = depth,
+                        onlyShowLastLayer = True
                         }
                     startShape = (ID.Trunk "start", dummyShape)
                     iterFrame = (ID.Trunk "f1", dummyFrame)
                     result = IterFrame.iterateShapes mode [iterFrame] [startShape]
                 in
-                    E.equal (List.length result) 2  -- First and last layer only
-      , T.test "hiding all layers produces empty list" <|
-            \_ ->
-                let
-                    mode = { initMode | 
-                        depth = 3,
-                        hiddenLayers = Set.fromList [1, 2, 3]
-                        }
-                    startShape = (ID.Trunk "start", dummyShape)
-                    iterFrame = (ID.Trunk "f1", dummyFrame)
-                    result = IterFrame.iterateShapes mode [iterFrame] [startShape]
-                in
-                    E.equal result []
+                    E.equal (List.length result)
+                        -- The base shape is not handled by iterateShapes,
+                        -- so we need to account for that.
+                        (if depth == 0 then 0 else 1)
+    ]
+
+modeUpdateTests : T.Test
+modeUpdateTests = T.describe "mode update functionality" [
+        T.describe "updateIterationDepth" [
+            T.fuzz2 (F.intRange 0 10) (F.intRange -3 3)
+                "Result depth updated with change argument" <|
+                \oldDepth randChange ->
+                    let
+                        -- The button prevents the depth from going below 0,
+                        -- so let's simulate only changes in the allowed range.
+                        change = if randChange + oldDepth < 0
+                            then -oldDepth
+                            else randChange
+                        mode = { initMode | depth = oldDepth }
+                        result = IterFrame.updateIterationDepth change mode
+                    in
+                        E.equal result.depth (oldDepth + change)
+          , T.fuzz3 (F.intRange 0 10) (F.intRange -3 3) (F.bool)
+                "Hidden layer setting same after layer change if they started empty" <|
+                \oldDepth randChange startSetting ->
+                    let
+                        change = if randChange + oldDepth < 0
+                            then -oldDepth
+                            else randChange
+                        mode = { initMode | depth = oldDepth, onlyShowLastLayer = startSetting }
+                        result = IterFrame.updateIterationDepth change mode
+                    in
+                        E.equal result.onlyShowLastLayer startSetting
+        ]
     ]
 
 -- Helper definitions for testing

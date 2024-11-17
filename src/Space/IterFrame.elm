@@ -7,6 +7,8 @@ module Space.IterFrame exposing (
       , Tool(..)
       , update
       , identityDef
+      , updateIterationDepth
+      , updateOnlyShowLastLayer
     )
 
 import Svg.Styled as S
@@ -111,14 +113,20 @@ type alias Mode
         -- Layers to hide
         -- Convention: 1 is the first iteration
         --   0 represents the base shapes
-      , hiddenLayers : Set.Set Int
+      , onlyShowLastLayer : Bool
     }
 
 {-| Default mode for initializing -}
 initMode
     : Mode
 initMode
-    = {depth = 6, hueShift = (0.618034 * 8/7), showIterFrames = True, hiddenLayers = Set.empty}
+    = {depth = 6, hueShift = (0.618034 * 8/7), showIterFrames = True, onlyShowLastLayer = False}
+
+getHiddenLayers : Mode -> Set.Set Int
+getHiddenLayers mode = if mode.onlyShowLastLayer
+    then allButLastLayerHidden mode.depth
+    else Set.empty
+
 
 iterateShapes
     : Mode
@@ -126,16 +134,17 @@ iterateShapes
     -> List (ID.TreeID, Shape.Def)
     -> List (ID.TreeID, Shape.Def)
 iterateShapes mode ifdefs sdefs
-    = iterateShapesWithIndex mode mode.depth 1 ifdefs sdefs
+    = iterateShapesWithHiding mode mode.depth 1 (getHiddenLayers mode) ifdefs sdefs
 
-iterateShapesWithIndex
+iterateShapesWithHiding
     : Mode
     -> Int -- current depth
     -> Int -- current index
+    -> Set.Set Int -- hidden layers
     -> List (ID.TreeID, Def)
     -> List (ID.TreeID, Shape.Def)
     -> List (ID.TreeID, Shape.Def)
-iterateShapesWithIndex mode currentDepth currentIndex ifdefs sdefs
+iterateShapesWithHiding mode currentDepth currentIndex hiddenLayers ifdefs sdefs
     = if currentDepth <= 0
         then []
         else
@@ -144,10 +153,10 @@ iterateShapesWithIndex mode currentDepth currentIndex ifdefs sdefs
                 newDepth = currentDepth - 1
                 newIndex = currentIndex + 1
             in
-                if Set.member currentIndex mode.hiddenLayers then
-                    iterateShapesWithIndex mode newDepth newIndex ifdefs newSdefs
+                if Set.member currentIndex hiddenLayers then
+                    iterateShapesWithHiding mode newDepth newIndex hiddenLayers ifdefs newSdefs
                 else
-                    newSdefs ++ (iterateShapesWithIndex mode newDepth newIndex ifdefs newSdefs)
+                    newSdefs ++ (iterateShapesWithHiding mode newDepth newIndex hiddenLayers ifdefs newSdefs)
 
 singleIteration
     : Mode
@@ -290,3 +299,26 @@ doSkew frameDef anchor current def
                 (toolDisplacement)
     in
         { def | yBasis = G.shift def.yBasis yShift }
+
+{-| The layers to hide if only the last layer is shown. -}
+allButLastLayerHidden : Int -> Set.Set Int
+allButLastLayerHidden iterationDepth
+    = Set.fromList (List.range 0 (iterationDepth - 1))
+
+{-| Update the iteration depth. 
+    The first argument is the change in depth.
+ -}
+updateIterationDepth
+    : Int -- ^ change in depth
+   -> Mode
+   -> Mode
+updateIterationDepth change mode
+    = { mode | depth = mode.depth + change }
+
+{-| Update the hidden layers to show only the last layer. -}
+updateOnlyShowLastLayer
+    : Bool
+    -> Mode
+    -> Mode
+updateOnlyShowLastLayer newOnlyShowLastLayer mode
+    = { mode | onlyShowLastLayer = newOnlyShowLastLayer }

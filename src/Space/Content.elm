@@ -123,7 +123,7 @@ appendIterShapes mode contents
             = List.map makeIterShape
                 <| IterFrame.iterateShapes mode iterFrameDefs shapeDefs
         allShapes
-            = if Set.member 0 mode.hiddenLayers
+            = if mode.onlyShowLastLayer && (mode.depth > 0)
                 then iterShapes
                 else shapes ++ iterShapes
     in
