@@ -17,12 +17,14 @@ import Geometry as G
 type Which
     = Sierpinski
     | Dragon
+    | SierpinskiCarpet
 
 get : Which -> Space.Model
 get which =
     case which of
         Sierpinski -> sierpinski
         Dragon -> dragon
+        SierpinskiCarpet -> sierpinskiCarpet
 
 setDefaultIterFrame : IterFrame.Def -> Space.Model -> Space.Model
 setDefaultIterFrame ifDef model =
@@ -142,3 +144,151 @@ dragonDefaultTransform
       , yBasis = G.rotateOrigin (turns 1/8) <| G.disp 0.5 0.5
       , offset = G.disp 0 0
     }
+
+{- ## Sierpinski Carpet -}
+
+sierpinskiCarpet : Space.Model
+sierpinskiCarpet =
+    Space.addIterFrame (ID.Trunk "f8")
+        (\m -> carpetFrameTopRight m.outerFrame)
+        <| Space.addIterFrame (ID.Trunk "f7")
+            (\m -> carpetFrameTopCenter m.outerFrame)
+        <| Space.addIterFrame (ID.Trunk "f6")
+            (\m -> carpetFrameTopLeft m.outerFrame)
+        <| Space.addIterFrame (ID.Trunk "f5")
+            (\m -> carpetFrameMiddleRight m.outerFrame)
+        <| Space.addIterFrame (ID.Trunk "f4")
+            (\m -> carpetFrameMiddleLeft m.outerFrame)
+        <| Space.addIterFrame (ID.Trunk "f3")
+            (\m -> carpetFrameBottomRight m.outerFrame)
+        <| Space.addIterFrame (ID.Trunk "f2")
+            (\m -> carpetFrameBottomCenter m.outerFrame)
+        <| Space.addIterFrame (ID.Trunk "f1")
+            (\m -> carpetFrameBottomLeft m.outerFrame)
+        <| Space.addContentToModel (ID.Trunk "start")
+            (\m id -> Content.makeShape id <| sierpinskiCarpetStartingSquare m.outerFrame)
+        <| Space.setIterationDepth 3
+        <| setDefaultIterFrame sierpinskiCarpetTransform
+        <| carpetSetReferenceFrame
+        <| Space.emptyModel <| Frame.Golden 800
+
+{-| Get the length of the side of the starting square for the Sierpinski carpet. -}
+carpetSquareLength : Frame.Def -> Float
+carpetSquareLength frame = Frame.height frame
+
+{-| Common function to calculate the scale for Sierpinski Carpet -}
+carpetScale : Frame.Def -> Float
+carpetScale frame =
+    carpetSquareLength frame / 3  -- Scaling to 1/3 of the frame's height
+
+carpetSetReferenceFrame : Space.Model -> Space.Model
+carpetSetReferenceFrame model
+    = setReferenceFrame
+        (Just <| Frame.Rectangle
+            (carpetSquareLength model.outerFrame)
+            (carpetSquareLength model.outerFrame)
+        )
+        model
+
+{-| Get the starting square for the Sierpinski carpet. -}
+sierpinskiCarpetStartingSquare : Frame.Def -> Shape.Def
+sierpinskiCarpetStartingSquare rdef =
+    let
+        size = carpetSquareLength rdef
+    in
+        { fill = blue
+            , geoDef = G.Polygon
+                [
+                    G.point (-size / 2) (-size / 2)
+                  , G.point (size / 2) (-size / 2)
+                  , G.point (size / 2) (size / 2)
+                  , G.point (-size / 2) (size / 2)
+                ]
+        }
+
+sierpinskiCarpetTransform : IterFrame.Def
+sierpinskiCarpetTransform =
+    { xBasis = G.disp (1 / 3) 0    -- Fixed scaling ratio
+    , yBasis = G.disp 0 (1 / 3)    -- Fixed scaling ratio
+    , offset = G.disp 0 0            -- Base offset
+    }
+
+-- Top Left IterFrame
+carpetFrameTopLeft : Frame.Def -> IterFrame.Def
+carpetFrameTopLeft frame =
+    let
+        scale = carpetScale frame
+    in
+        { sierpinskiCarpetTransform
+            | offset = G.disp (-scale) scale
+        }
+
+-- Top Center IterFrame
+carpetFrameTopCenter : Frame.Def -> IterFrame.Def
+carpetFrameTopCenter frame =
+    let
+        scale = carpetScale frame
+    in
+        { sierpinskiCarpetTransform
+            | offset = G.disp 0 scale
+        }
+
+-- Top Right IterFrame
+carpetFrameTopRight : Frame.Def -> IterFrame.Def
+carpetFrameTopRight frame =
+    let
+        scale = carpetScale frame
+    in
+        { sierpinskiCarpetTransform
+            | offset = G.disp scale scale
+        }
+
+-- Middle Left IterFrame
+carpetFrameMiddleLeft : Frame.Def -> IterFrame.Def
+carpetFrameMiddleLeft frame =
+    let
+        scale = carpetScale frame
+    in
+        { sierpinskiCarpetTransform
+            | offset = G.disp (-scale) 0
+        }
+
+-- Middle Right IterFrame
+carpetFrameMiddleRight : Frame.Def -> IterFrame.Def
+carpetFrameMiddleRight frame =
+    let
+        scale = carpetScale frame
+    in
+        { sierpinskiCarpetTransform
+            | offset = G.disp scale 0
+        }
+
+-- Bottom Left IterFrame
+carpetFrameBottomLeft : Frame.Def -> IterFrame.Def
+carpetFrameBottomLeft frame =
+    let
+        scale = carpetScale frame
+    in
+        { sierpinskiCarpetTransform
+            | offset = G.disp (-scale) (-scale)
+        }
+
+-- Bottom Center IterFrame
+carpetFrameBottomCenter : Frame.Def -> IterFrame.Def
+carpetFrameBottomCenter frame =
+    let
+        scale = carpetScale frame
+    in
+        { sierpinskiCarpetTransform
+            | offset = G.disp 0 (-scale)
+        }
+
+-- Bottom Right IterFrame
+carpetFrameBottomRight : Frame.Def -> IterFrame.Def
+carpetFrameBottomRight frame =
+    let
+        scale = carpetScale frame
+    in
+        { sierpinskiCarpetTransform
+            | offset = G.disp scale (-scale)
+        }

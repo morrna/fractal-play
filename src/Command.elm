@@ -42,6 +42,7 @@ viewBar {iterMode, baseContents}
             [
                 ("Sierpinski triangle", Reset Start.Sierpinski)
               , ("Dragon", Reset Start.Dragon)
+              , ("Sierpinski carpet", Reset Start.SierpinskiCarpet)
             ]
         ++ toggle "show iteration frames" ToggleShowIterFrames iterMode.showIterFrames
         ++ incrementer
