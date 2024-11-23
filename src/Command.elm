@@ -8,7 +8,6 @@ module Command exposing (
 import Html.Styled as HS
 import List
 import Maybe
-import Set
 
 import Space
 import Space.Content as Content
@@ -43,6 +42,7 @@ viewBar {iterMode, baseContents}
             [
                 ("Sierpinski triangle", Reset Start.Sierpinski)
               , ("Dragon", Reset Start.Dragon)
+              , ("Sierpinski carpet", Reset Start.SierpinskiCarpet)
             ]
         ++ toggle "show iteration frames" ToggleShowIterFrames iterMode.showIterFrames
         ++ incrementer

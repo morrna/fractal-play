@@ -7,6 +7,7 @@ module Space.IterFrame exposing (
       , Tool(..)
       , update
       , identityDef
+      , setIterationDepth
       , updateIterationDepth
       , updateOnlyShowLastLayer
     )
@@ -304,6 +305,10 @@ doSkew frameDef anchor current def
 allButLastLayerHidden : Int -> Set.Set Int
 allButLastLayerHidden iterationDepth
     = Set.fromList (List.range 0 (iterationDepth - 1))
+
+{-| Set the iteration depth on a mode. -}
+setIterationDepth : Int -> Mode -> Mode
+setIterationDepth depth mode = { mode | depth = depth }
 
 {-| Update the iteration depth. 
     The first argument is the change in depth.
