@@ -8,7 +8,6 @@ module Command exposing (
 import Html.Styled as HS
 import List
 import Maybe
-import Set
 
 import Space
 import Space.Content as Content
