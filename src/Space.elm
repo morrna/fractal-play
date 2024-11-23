@@ -6,6 +6,7 @@ module Space exposing (
       , addIterFrame
       , view
       , update
+      , setIterationDepth
     )
 
 import Html.Styled as HS
@@ -193,3 +194,7 @@ maybeShowReferenceFrame model =
                 []
         Nothing ->
             []
+
+{-| Set the iteration depth on a model. -}
+setIterationDepth : Int -> Model -> Model
+setIterationDepth depth model = { model | iterMode = IterFrame.setIterationDepth depth model.iterMode }
