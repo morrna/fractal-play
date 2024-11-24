@@ -6,6 +6,8 @@ module Command exposing (
     )
 
 import Html.Styled as HS
+import Html.Styled.Attributes as HSA
+import Css
 import List
 import Maybe
 import Svg.Styled as S
@@ -127,7 +129,14 @@ iterFrameKey
 iterFrameKey
     = [
         HS.h4 [] [HS.text "iteration frame controls"]
-      , S.svg []
+      , S.svg
+        [
+            HSA.css
+                [
+                    Css.marginLeft (Css.px 16)
+                  , Css.marginRight (Css.px 16)
+                ]
+        ]
         [
             IterFrame.showKey
         ]
