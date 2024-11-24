@@ -8,6 +8,7 @@ module Command exposing (
 import Html.Styled as HS
 import List
 import Maybe
+import Svg.Styled as S
 
 import Space
 import Space.Content as Content
@@ -54,6 +55,7 @@ viewBar {iterMode, baseContents}
             { incrementerDefaults | label = "# iteration frames" , min = Just 0}
             ChangeNumIterFrames
             (Content.numIterFrames baseContents)
+        ++ iterFrameKey
 
 layerVisibilityControls : List (HS.Html Message)
 layerVisibilityControls
@@ -119,3 +121,14 @@ getIterFrameIDtoDrop {baseContents}
 getNewIterFrameID : Space.Model -> ID.TreeID
 getNewIterFrameID {baseContents}
     = ID.Trunk <| "f" ++ String.fromInt (1 + Content.numIterFrames baseContents)
+
+iterFrameKey
+    : List (HS.Html msg)
+iterFrameKey
+    = [
+        HS.h4 [] [HS.text "iteration frame controls"]
+      , S.svg []
+        [
+            IterFrame.showKey
+        ]
+    ]
