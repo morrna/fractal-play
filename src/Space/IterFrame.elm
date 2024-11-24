@@ -112,7 +112,11 @@ showKey
             show
                 (Frame.Rectangle 36 36)
                 (\_ -> [])
-                {identityDef | offset = G.disp 50 50}
+                {identityDef | offset = G.disp 62 50}
+          , S.text_ [SA.x "0", SA.y "10"] [S.text "move"]
+          , S.text_ [SA.x "84", SA.y "10"] [S.text "spin"]
+          , S.text_ [SA.x "0", SA.y "96"] [S.text "skew"]
+          , S.text_ [SA.x "84", SA.y "96"] [S.text "scale"]
         ]
 
 
