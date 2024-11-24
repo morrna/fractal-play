@@ -1,6 +1,7 @@
 {- Visual components for controlling configuration -}
 module Command.Components exposing (
-        incrementer
+        commandLabel
+      , incrementer
       , IncrementerSettings
       , incrementerDefaults
       , toggle
@@ -15,6 +16,12 @@ import List
 import String
 import Css
 
+{-| Common heading for command controls -}
+commandLabel : String -> HS.Html msg
+commandLabel text =
+    HS.h4 
+        [ HSA.class "command-label" ]
+        [ HS.text text ]
 
 incrementer
     : IncrementerSettings        {- configuration -}
@@ -23,7 +30,7 @@ incrementer
    -> List (HS.Html msg)
 incrementer settings sendIncrement current
     = [
-        HS.h4 [] [HS.text settings.label]
+        commandLabel settings.label
       , HS.span [] [
             HS.button
                 (
@@ -99,7 +106,7 @@ toggle label sendToggle current
             = if current then "on" else "off"
     in
     [
-        HS.h4 [] [HS.text label]
+        commandLabel label
       , HS.button [HSE.onClick sendToggle, pressed, style] [HS.text labelText]
     ]
 
@@ -110,7 +117,7 @@ choice
    -> List (HS.Html msg)
 choice label choices
     = [
-        HS.h4 [] [HS.text label]
+        commandLabel label
       , HS.select []
             <| List.map
                 (\(choiceText, msg) ->
@@ -127,7 +134,7 @@ textButtonGroup
 textButtonGroup header buttons
     = [
         HS.div [ HSA.css [Css.marginTop (Css.px 10)] ]
-            ( HS.h4 [] [ HS.text header ]
+            (commandLabel header
                 :: List.map
                     (\(label, msg) ->
                         HS.button

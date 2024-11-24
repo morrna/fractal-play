@@ -1,6 +1,7 @@
 module Space.IterFrame exposing (
         Def
       , show
+      , showKey
       , Mode
       , initMode
       , iterateShapes
@@ -101,6 +102,23 @@ showSkewHandle frameDef ifDef atts
     = Shape.showGeoDef
         (atts ++ [SA.fill "magenta"])
         (G.Circle (cornerPoint frameDef ifDef G.BottomLeftCorner) 12)
+
+{-| Show a simple IterFrame to serve as a key explaining the IterFrame controls. -}
+showKey
+    : S.Svg msg
+showKey
+    = S.g []
+        [
+            show
+                (Frame.Rectangle 36 36)
+                (\_ -> [])
+                {identityDef | offset = G.disp 62 50}
+          , S.text_ [SA.x "0", SA.y "10"] [S.text "move"]
+          , S.text_ [SA.x "84", SA.y "10"] [S.text "spin"]
+          , S.text_ [SA.x "0", SA.y "96"] [S.text "skew"]
+          , S.text_ [SA.x "84", SA.y "96"] [S.text "scale"]
+        ]
+
 
 getTransform : Def -> G.Transform
 getTransform d = G.makeAffineTransform d.xBasis d.yBasis d.offset

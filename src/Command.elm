@@ -6,8 +6,11 @@ module Command exposing (
     )
 
 import Html.Styled as HS
+import Html.Styled.Attributes as HSA
+import Css
 import List
 import Maybe
+import Svg.Styled as S
 
 import Space
 import Space.Content as Content
@@ -20,6 +23,7 @@ import Command.Components exposing (
       , toggle
       , choice
       , textButtonGroup
+      , commandLabel
     )
 
 {-| Interactions with the command controls outside the drawing space -}
@@ -54,6 +58,7 @@ viewBar {iterMode, baseContents}
             { incrementerDefaults | label = "# iteration frames" , min = Just 0}
             ChangeNumIterFrames
             (Content.numIterFrames baseContents)
+        ++ iterFrameKey iterMode.showIterFrames
 
 layerVisibilityControls : List (HS.Html Message)
 layerVisibilityControls
@@ -119,3 +124,25 @@ getIterFrameIDtoDrop {baseContents}
 getNewIterFrameID : Space.Model -> ID.TreeID
 getNewIterFrameID {baseContents}
     = ID.Trunk <| "f" ++ String.fromInt (1 + Content.numIterFrames baseContents)
+
+iterFrameKey
+    : Bool
+   -> List (HS.Html msg)
+iterFrameKey showIterFrames
+    = if showIterFrames
+        then
+        [
+            commandLabel "iteration frame controls"
+          , S.svg
+                [
+                    HSA.css
+                        [
+                            Css.marginLeft (Css.px 16)
+                          , Css.marginRight (Css.px 16)
+                        ]
+                ]
+                [
+                    IterFrame.showKey
+                ]
+        ]
+        else []
