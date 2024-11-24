@@ -58,7 +58,7 @@ viewBar {iterMode, baseContents}
             { incrementerDefaults | label = "# iteration frames" , min = Just 0}
             ChangeNumIterFrames
             (Content.numIterFrames baseContents)
-        ++ iterFrameKey
+        ++ iterFrameKey iterMode.showIterFrames
 
 layerVisibilityControls : List (HS.Html Message)
 layerVisibilityControls
@@ -126,19 +126,23 @@ getNewIterFrameID {baseContents}
     = ID.Trunk <| "f" ++ String.fromInt (1 + Content.numIterFrames baseContents)
 
 iterFrameKey
-    : List (HS.Html msg)
-iterFrameKey
-    = [
-        commandLabel "iteration frame controls"
-      , S.svg
+    : Bool
+   -> List (HS.Html msg)
+iterFrameKey showIterFrames
+    = if showIterFrames
+        then
         [
-            HSA.css
+            commandLabel "iteration frame controls"
+          , S.svg
                 [
-                    Css.marginLeft (Css.px 16)
-                  , Css.marginRight (Css.px 16)
+                    HSA.css
+                        [
+                            Css.marginLeft (Css.px 16)
+                          , Css.marginRight (Css.px 16)
+                        ]
+                ]
+                [
+                    IterFrame.showKey
                 ]
         ]
-        [
-            IterFrame.showKey
-        ]
-    ]
+        else []
