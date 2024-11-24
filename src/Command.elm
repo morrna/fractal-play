@@ -23,6 +23,7 @@ import Command.Components exposing (
       , toggle
       , choice
       , textButtonGroup
+      , commandLabel
     )
 
 {-| Interactions with the command controls outside the drawing space -}
@@ -128,7 +129,7 @@ iterFrameKey
     : List (HS.Html msg)
 iterFrameKey
     = [
-        HS.h4 [] [HS.text "iteration frame controls"]
+        commandLabel "iteration frame controls"
       , S.svg
         [
             HSA.css
