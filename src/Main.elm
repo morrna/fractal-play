@@ -5,33 +5,22 @@ import Html.Styled.Attributes as HSA
 import Css
 import Browser as B
 
-import Space
 import SpaceCommand as SC
 import Tutorial
 
-main : Program () Model SC.Message
+main : Program () Tutorial.WrapModel Tutorial.WrapMessage
 main = B.sandbox {
-        init = init
+        init = Tutorial.wrapInit
       , view = HS.toUnstyled << viewWithHeader
       , update = update
     }
 
-type alias Model
-    = { space : Space.Model
-      , tutorial : Tutorial.Model
-    }
 
-init : Model
-init = {
-        space = SC.init
-      , tutorial = Tutorial.init
-    }
-
-viewWithHeader : Model -> HS.Html SC.Message
+viewWithHeader : Tutorial.WrapModel -> HS.Html Tutorial.WrapMessage
 viewWithHeader model =
     HS.div []
-        [ HS.header 
-            [ HSA.css 
+        [ HS.header
+            [ HSA.css
                 [ Css.displayFlex
                 , Css.alignItems Css.center
                 , Css.property "gap" "2rem"
@@ -40,16 +29,16 @@ viewWithHeader model =
                 , Css.paddingRight (Css.rem 2)
                 ]
             ]
-            [ HS.h1 
+            [ HS.h1
                 [ HSA.css [Css.margin2 (Css.rem 1) (Css.rem 0) ] ]
                 [ HS.text "Fractal Play" ]
-            , Tutorial.view model.tutorial
+            , HS.map Tutorial.TutorialMessage <| Tutorial.view model.tutorial
             ]
-        , SC.view model.space
+        , HS.map Tutorial.SpaceMessage <| SC.view model.space
         ]
 
-update : SC.Message -> Model -> Model
+update : Tutorial.WrapMessage -> Tutorial.WrapModel -> Tutorial.WrapModel
 update message model
-  = { model
-        | space = SC.update message model.space
-  }
+  = case message of
+        Tutorial.SpaceMessage msg -> { model | space = SC.update msg model.space }
+        Tutorial.TutorialMessage msg -> Tutorial.update msg model

@@ -3,6 +3,7 @@ module Tutorial.Sequence exposing (
       , init
       , getCurrent
       , getMessage
+      , advance
     )
 
 import Html.Styled as HS
@@ -15,6 +16,7 @@ init : Sequence
 init
     = [
         "Click to start tutorial"
+      , "These fractals come from Iteration Function Systems."
     ]
 
 getCurrent : Sequence -> Maybe Step
@@ -24,3 +26,10 @@ getCurrent sequence
 getMessage : Step -> HS.Html msg
 getMessage item
     = HS.text item
+
+advance : Sequence -> Sequence
+advance sequence
+    = case List.tail sequence of
+        Nothing -> init
+        Just [] -> init
+        Just rest -> rest
