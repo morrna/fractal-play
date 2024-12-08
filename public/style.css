@@ -22,3 +22,7 @@ select {
     border-radius: 0.2rem;
     border: none;
 }
+
+.control-background {
+    background-color: #d0f9fe;
+}
