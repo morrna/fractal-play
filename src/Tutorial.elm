@@ -18,36 +18,43 @@ import Tutorial.Sequence as TS
 import Space
 import SpaceCommand as SC
 
+{-| State for tutorial. -}
 type alias Model
     = { sequence : TS.Sequence }
 
+{-| Starting state for tutorial. -}
 init : Model
 init = { sequence = TS.init }
 
+{-| Convenient helper to update sequence. -}
 modelLiftSequence
     : (TS.Sequence -> TS.Sequence)
    -> (Model -> Model)
 modelLiftSequence f model
     = { model | sequence = f model.sequence }
 
+{-| Combined model for tutorial and space. -}
 type alias WrapModel
     = {
         space : Space.Model
       , tutorial : Model
     }
 
+{-| Convenient helper to update tutorial state. -}
 wrapLiftTutorial
     : (Model -> Model)
    -> (WrapModel -> WrapModel)
 wrapLiftTutorial f model
     = { model | tutorial = f model.tutorial }
 
+{-| Combined starting state for tutorial and space. -}
 wrapInit : WrapModel
 wrapInit = {
         space = SC.init
       , tutorial = init
     }
 
+{-| View for the tutorial element shown in the header. -}
 view : Model -> HS.Html Message
 view model
     = let
@@ -73,13 +80,19 @@ view model
         ]
         [ message ]
 
+{-| Message for tutorial. -}
 type Message
     = Advance
 
+{-| Combined message for tutorial and space. -}
 type WrapMessage
     = SpaceMessage SC.Message
     | TutorialMessage Message
 
+{-| Update for tutorial messages.
+    This gets to see the whole model so that tutorial steps can modify
+    the state to guide interactions.
+ -}
 update : Message -> WrapModel -> WrapModel
 update message
     = case message of

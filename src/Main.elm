@@ -16,6 +16,9 @@ main = B.sandbox {
     }
 
 
+{-| Main view, including header and tutorial.
+    This is defined here because things like the header should be owned by Main.
+ -}
 viewWithHeader : Tutorial.WrapModel -> HS.Html Tutorial.WrapMessage
 viewWithHeader model =
     HS.div []
@@ -37,6 +40,8 @@ viewWithHeader model =
         , HS.map Tutorial.SpaceMessage <| SC.view model.space
         ]
 
+
+{-| Update that redirects messages to the right component. -}
 update : Tutorial.WrapMessage -> Tutorial.WrapModel -> Tutorial.WrapModel
 update message model
   = case message of
