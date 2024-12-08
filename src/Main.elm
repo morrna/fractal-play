@@ -9,14 +9,25 @@ import Space
 import SpaceCommand as SC
 import Tutorial
 
-main : Program () Space.Model SC.Message
+main : Program () Model SC.Message
 main = B.sandbox {
-        init = SC.init
+        init = init
       , view = HS.toUnstyled << viewWithHeader
-      , update = SC.update
+      , update = update
     }
 
-viewWithHeader : Space.Model -> HS.Html SC.Message
+type alias Model
+    = { space : Space.Model
+      , tutorial : Tutorial.Model
+    }
+
+init : Model
+init = {
+        space = SC.init
+      , tutorial = Tutorial.init
+    }
+
+viewWithHeader : Model -> HS.Html SC.Message
 viewWithHeader model =
     HS.div []
         [ HS.header 
@@ -32,7 +43,13 @@ viewWithHeader model =
             [ HS.h1 
                 [ HSA.css [Css.margin2 (Css.rem 1) (Css.rem 0) ] ]
                 [ HS.text "Fractal Play" ]
-            , Tutorial.view
+            , Tutorial.view model.tutorial
             ]
-        , SC.view model
+        , SC.view model.space
         ]
+
+update : SC.Message -> Model -> Model
+update message model
+  = { model
+        | space = SC.update message model.space
+  }
