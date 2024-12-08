@@ -71,7 +71,7 @@ view model
           , HSA.css
                 [ Css.padding (Css.rem 1)
                 , Css.borderRadius (Css.rem 0.5)
-                , Css.maxWidth (Css.px 400)
+                , Css.maxWidth (Css.rem 80)
                 , (if shouldDisplay
                     then Css.display Css.block
                     else Css.display Css.none)
