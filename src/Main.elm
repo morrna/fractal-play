@@ -7,6 +7,7 @@ import Browser as B
 
 import Space
 import SpaceCommand as SC
+import Tutorial
 
 main : Program () Space.Model SC.Message
 main = B.sandbox {
@@ -18,10 +19,20 @@ main = B.sandbox {
 viewWithHeader : Space.Model -> HS.Html SC.Message
 viewWithHeader model =
     HS.div []
-        [ HS.header []
+        [ HS.header 
+            [ HSA.css 
+                [ Css.displayFlex
+                , Css.alignItems Css.center
+                , Css.property "gap" "2rem"
+                , Css.justifyContent Css.spaceBetween
+                , Css.paddingLeft (Css.rem 2)
+                , Css.paddingRight (Css.rem 2)
+                ]
+            ]
             [ HS.h1 
-                [ HSA.css [ Css.marginLeft (Css.rem 2) ] ]
+                [ HSA.css [Css.margin2 (Css.rem 1) (Css.rem 0) ] ]
                 [ HS.text "Fractal Play" ]
+            , Tutorial.view
             ]
         , SC.view model
         ]
