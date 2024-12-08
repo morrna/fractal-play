@@ -78,7 +78,8 @@ view model
                 ]
           , HSE.onClick Advance
         ]
-        [ message ]
+        -- map for type only
+        [ HS.map (always Advance) message ]
 
 {-| Message for tutorial. -}
 type Message
