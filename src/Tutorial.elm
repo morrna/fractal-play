@@ -17,14 +17,31 @@ import Maybe
 import Tutorial.Sequence as TS
 import Space
 import SpaceCommand as SC
+import Space.IterFrame as IterFrame
+import Space.Content as Content
 
 {-| State for tutorial. -}
 type alias Model
-    = { sequence : TS.Sequence }
+    = {
+        sequence : TS.Sequence
+      , cache : Cache
+    }
 
 {-| Starting state for tutorial. -}
 init : Model
-init = { sequence = TS.init }
+init = {
+        sequence = TS.init
+      , cache = {
+            iterMode = IterFrame.initMode
+          , hiddenContent = []
+        }
+    }
+
+{-| User state to be restored later. -}
+type alias Cache = {
+        iterMode : IterFrame.Mode
+      , hiddenContent : List Content.Content
+    }
 
 {-| Convenient helper to update sequence. -}
 modelLiftSequence
@@ -46,6 +63,13 @@ wrapLiftTutorial
    -> (WrapModel -> WrapModel)
 wrapLiftTutorial f model
     = { model | tutorial = f model.tutorial }
+
+{-| Convenient helper to update space state. -}
+wrapLiftSpace
+    : (Space.Model -> Space.Model)
+   -> (WrapModel -> WrapModel)
+wrapLiftSpace f model
+    = { model | space = f model.space }
 
 {-| Combined starting state for tutorial and space. -}
 wrapInit : WrapModel
@@ -97,4 +121,40 @@ type WrapMessage
 update : Message -> WrapModel -> WrapModel
 update message
     = case message of
-        Advance -> wrapLiftTutorial (modelLiftSequence TS.advance)
+        Advance -> doStepAction << wrapLiftTutorial (modelLiftSequence TS.advance)
+
+{-| Update the model based on the current step's action. -}
+doStepAction : WrapModel -> WrapModel
+doStepAction model
+    = let
+        current = TS.getCurrent model.tutorial.sequence
+        action = Maybe.withDefault TS.NoAction (Maybe.map .action current)
+      in case action of
+        TS.NoAction -> model
+        TS.ModifySpace modifier -> cacheAndModifySpace modifier model
+        TS.RestoreFromCache -> wrapLiftSpace (restoreFromCache model.tutorial.cache) model
+
+{-| Cache the current state and modify the space. -}
+cacheAndModifySpace : (Space.Model -> Space.Model) -> WrapModel -> WrapModel
+cacheAndModifySpace modifier model
+    = let
+        newSpaceModel = modifier model.space
+        cache = {
+            iterMode = model.space.iterMode
+          , hiddenContent = List.filter
+              (\content -> not <| List.member content newSpaceModel.baseContents)
+              model.space.baseContents
+          }
+        oldTutorial = model.tutorial
+      in { model |
+            tutorial = { oldTutorial | cache = cache }
+          , space = newSpaceModel
+        }
+
+{-| Restore the state from the cache. -}
+restoreFromCache : Cache -> Space.Model -> Space.Model
+restoreFromCache cache spaceModel
+    = { spaceModel |
+        iterMode = cache.iterMode
+      , baseContents = spaceModel.baseContents ++ cache.hiddenContent
+      }
