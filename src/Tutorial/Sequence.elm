@@ -28,6 +28,7 @@ type StepAction
     = NoAction
     | ModifySpace (Space.Model -> Space.Model)
     | RestoreFromCache
+    | RestoreHiddenContent
 
 
 init : Sequence
@@ -41,16 +42,16 @@ init
             , HS.a
                 [ HSA.href "https://en.wikipedia.org/wiki/Iterated_function_system" ]
                 [ HS.text "iterated function systems" ]
-            , HS.text (". Click the link to read about them on Wikipedia,"
-              ++ " or click this block to continue."
+            , HS.text (". Click the link to read about them on Wikipedia."
+              ++ " Every time you're ready to continue with the next tutorial step, click this block."
               )
             ]
         , action = NoAction
         }
       , { message = HS.text ("This red frame represents an iteration."
           ++ " Let's just look at one for now."
-          ++ " The red frame is the image of the thin black reference frame"
-          ++ " under a function."
+          ++ " If you feed the thin black reference frame into the iteration function,"
+          ++ " you get the red frame as the output."
         )
         , action = ModifySpace (\spaceModel ->
             let
@@ -101,6 +102,13 @@ init
           ++ " Every change that happens to the first new shape happens to the second new shape doubled."
           )
         , action = ModifySpace (Space.setIterationDepth 2)
+        }
+      , { message = HS.text ("Now it's time to use multiple iteration functions at once."
+          ++ " Each function creates its own new shape at each layer."
+          ++ " Then for the next layer, each function takes all the shapes from the previous layer as input."
+          ++ " Spend some time playing with the functions, and watch how the shapes in the second layer change."
+          )
+        , action = RestoreHiddenContent
         }
       ]
 

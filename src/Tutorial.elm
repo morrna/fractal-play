@@ -36,8 +36,8 @@ init = {
 
 {-| User state to be restored later. -}
 type alias Cache = {
-        iterMode : IterFrame.Mode
-      , hiddenContent : List Content.Content
+        iterMode : Maybe IterFrame.Mode
+      , hiddenContent : Maybe (List Content.Content)
     }
 
 {-| Convenient helper to update sequence. -}
@@ -67,6 +67,13 @@ wrapLiftSpace
    -> (WrapModel -> WrapModel)
 wrapLiftSpace f model
     = { model | space = f model.space }
+
+{-| Convenient helper to update cache state. -}
+wrapLiftCache
+    : (Cache -> Cache)
+   -> (WrapModel -> WrapModel)
+wrapLiftCache f
+    = wrapLiftTutorial (\m -> { m | cache = f m.cache })
 
 {-| Combined starting state for tutorial and space. -}
 wrapInit : WrapModel
@@ -120,6 +127,58 @@ update message
     = case message of
         Advance -> doStepAction << wrapLiftTutorial (modelLiftSequence TS.advance)
 
+{-| Check if the cached iteration mode is in initial state -}
+isEmptyIterMode : Cache -> Bool
+isEmptyIterMode cache =
+    cache.iterMode == Nothing
+
+{-| Check if there are no hidden contents cached -}
+isEmptyHiddenContent : Cache -> Bool
+isEmptyHiddenContent cache =
+    cache.hiddenContent == Nothing
+
+{-| Cache the current state if appropriate parts of cache are empty and modify the space. -}
+cacheAndModifySpace : (Space.Model -> Space.Model) -> WrapModel -> WrapModel
+cacheAndModifySpace modifier model
+    = let
+        newSpaceModel = modifier model.space
+        oldCache = model.tutorial.cache
+
+        -- Only update the parts of cache that are empty
+        newCache = {
+            iterMode = if isEmptyIterMode oldCache
+                then Just model.space.iterMode
+                else oldCache.iterMode
+          , hiddenContent = if isEmptyHiddenContent oldCache
+                then Just (List.filter
+                    (\content -> not <| List.member content newSpaceModel.baseContents)
+                    model.space.baseContents)
+                else oldCache.hiddenContent
+          }
+
+        oldTutorial = model.tutorial
+      in { model |
+            tutorial = { oldTutorial | cache = newCache }
+          , space = newSpaceModel
+        }
+
+{-| Restore the hidden frames from cache. -}
+restoreHiddenContent : Cache -> Space.Model -> Space.Model
+restoreHiddenContent cache spaceModel =
+    { spaceModel |
+        baseContents = spaceModel.baseContents ++ Maybe.withDefault [] cache.hiddenContent
+    }
+
+{-| Reset the hidden content portion of the cache -}
+resetHiddenContent : WrapModel -> WrapModel
+resetHiddenContent =
+    wrapLiftCache (\m -> { m | hiddenContent = Nothing })
+
+{-| Reset the cache to initial state. -}
+resetCache : WrapModel -> WrapModel
+resetCache =
+    wrapLiftCache (\_ -> initCache)
+
 {-| Update the model based on the current step's action. -}
 doStepAction : WrapModel -> WrapModel
 doStepAction model
@@ -130,47 +189,33 @@ doStepAction model
         TS.NoAction -> model
         TS.ModifySpace modifier -> cacheAndModifySpace modifier model
         TS.RestoreFromCache ->
-            model
-                |> wrapLiftSpace (restoreFromCache model.tutorial.cache)
-                |> wrapLiftTutorial (\m -> { m | cache = initCache })
+            (resetCache
+                << wrapLiftSpace (restoreFromCache model.tutorial.cache)
+            ) model
 
-{-| Cache the current state if the cache is empty and modify the space. -}
-cacheAndModifySpace : (Space.Model -> Space.Model) -> WrapModel -> WrapModel
-cacheAndModifySpace modifier model
-    = let
-        newSpaceModel = modifier model.space
-        cache = if isEmptyCache model.tutorial.cache then
-            {
-                iterMode = model.space.iterMode
-              , hiddenContent = List.filter
-                  (\content -> not <| List.member content newSpaceModel.baseContents)
-                  model.space.baseContents
-            }
-          else
-            model.tutorial.cache
-
-        oldTutorial = model.tutorial
-      in { model |
-            tutorial = { oldTutorial | cache = cache }
-          , space = newSpaceModel
-        }
-
-{-| Check if cache is empty/initial state -}
-isEmptyCache : Cache -> Bool
-isEmptyCache cache =
-    cache.iterMode == IterFrame.initMode && List.isEmpty cache.hiddenContent
+        TS.RestoreHiddenContent ->
+            (resetHiddenContent
+                << wrapLiftSpace (restoreHiddenContent model.tutorial.cache)
+            ) model
 
 {-| Restore the state from the cache. -}
 restoreFromCache : Cache -> Space.Model -> Space.Model
-restoreFromCache cache spaceModel
-    = { spaceModel |
-        iterMode = cache.iterMode
-      , baseContents = spaceModel.baseContents ++ cache.hiddenContent
-      }
+restoreFromCache cache
+    = let
+        updateIterMode = Maybe.withDefault identity
+            <| Maybe.map
+                (\im -> (\m -> { m | iterMode = im }))
+                cache.iterMode
+        updateHiddenContent = Maybe.withDefault identity
+            <| Maybe.map
+                (\hidden -> (\m -> { m | baseContents = m.baseContents ++ hidden }))
+                cache.hiddenContent
+      in
+          updateHiddenContent << updateIterMode
 
 {-| Initial empty cache state -}
 initCache : Cache
 initCache = {
-        iterMode = IterFrame.initMode
-      , hiddenContent = []
+        iterMode = Nothing
+      , hiddenContent = Nothing
     }
