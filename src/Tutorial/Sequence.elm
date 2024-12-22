@@ -68,6 +68,21 @@ init
             }
           )
         }
+      , { message = HS.text ("Now let's apply the function to the base shape once."
+          ++ " Notice how the new shape fits inside the red frame in the same way the base shape fits"
+          ++ " inside the thin black reference frame."
+          )
+        , action = ModifySpace (\spaceModel ->
+            let
+                oldIterMode = spaceModel.iterMode
+                newIterMode = { oldIterMode |
+                      depth = 1
+                  }
+            in { spaceModel |
+                iterMode = newIterMode
+            }
+          )
+        }
       ]
 
 getCurrent : Sequence -> Maybe Step
