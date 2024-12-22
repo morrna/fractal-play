@@ -72,16 +72,29 @@ init
           ++ " Notice how the new shape fits inside the red frame in the same way the base shape fits"
           ++ " inside the thin black reference frame."
           )
-        , action = ModifySpace (\spaceModel ->
-            let
-                oldIterMode = spaceModel.iterMode
-                newIterMode = { oldIterMode |
-                      depth = 1
-                  }
-            in { spaceModel |
-                iterMode = newIterMode
-            }
+        , action = ModifySpace (Space.setIterationDepth 1)
+        }
+      , { message = HS.text ("The knobs on the red frame let you modify the function."
+          ++ " The grey knob lets you move the center offset."
+          ++ " Give it a try!"
           )
+        , action = NoAction
+        }
+      , { message = HS.text ("The cyan knob lets you change the rotation angle."
+          ++ " Give it a spin!"
+          )
+        , action = NoAction
+        }
+      , { message = HS.text ("The yellow knob lets you change the scale."
+          ++ " Try making it bigger and smaller!"
+          )
+        , action = NoAction
+        }
+      , { message = HS.text ("The magenta knob lets you change how much the function stretches in one direction"
+          ++ " while keeping the other direction the same size. It also lets you change the skew,"
+          ++ " making right angles come out of the function at a slant."
+          )
+        , action = NoAction
         }
       ]
 
