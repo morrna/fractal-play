@@ -96,6 +96,12 @@ init
           )
         , action = NoAction
         }
+      , { message = HS.text ("You probably noticed how the first new shape changes as you change the function."
+          ++ " Now let's apply the function again. Play with the knobs and watch the second new shape change."
+          ++ " Every change that happens to the first new shape happens to the second new shape doubled."
+          )
+        , action = ModifySpace (Space.setIterationDepth 2)
+        }
       ]
 
 getCurrent : Sequence -> Maybe Step
