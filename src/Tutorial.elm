@@ -31,10 +31,7 @@ type alias Model
 init : Model
 init = {
         sequence = TS.init
-      , cache = {
-            iterMode = IterFrame.initMode
-          , hiddenContent = []
-        }
+      , cache = initCache
     }
 
 {-| User state to be restored later. -}
@@ -132,24 +129,36 @@ doStepAction model
       in case action of
         TS.NoAction -> model
         TS.ModifySpace modifier -> cacheAndModifySpace modifier model
-        TS.RestoreFromCache -> wrapLiftSpace (restoreFromCache model.tutorial.cache) model
+        TS.RestoreFromCache ->
+            model
+                |> wrapLiftSpace (restoreFromCache model.tutorial.cache)
+                |> wrapLiftTutorial (\m -> { m | cache = initCache })
 
-{-| Cache the current state and modify the space. -}
+{-| Cache the current state if the cache is empty and modify the space. -}
 cacheAndModifySpace : (Space.Model -> Space.Model) -> WrapModel -> WrapModel
 cacheAndModifySpace modifier model
     = let
         newSpaceModel = modifier model.space
-        cache = {
-            iterMode = model.space.iterMode
-          , hiddenContent = List.filter
-              (\content -> not <| List.member content newSpaceModel.baseContents)
-              model.space.baseContents
-          }
+        cache = if isEmptyCache model.tutorial.cache then
+            {
+                iterMode = model.space.iterMode
+              , hiddenContent = List.filter
+                  (\content -> not <| List.member content newSpaceModel.baseContents)
+                  model.space.baseContents
+            }
+          else
+            model.tutorial.cache
+
         oldTutorial = model.tutorial
       in { model |
             tutorial = { oldTutorial | cache = cache }
           , space = newSpaceModel
         }
+
+{-| Check if cache is empty/initial state -}
+isEmptyCache : Cache -> Bool
+isEmptyCache cache =
+    cache.iterMode == IterFrame.initMode && List.isEmpty cache.hiddenContent
 
 {-| Restore the state from the cache. -}
 restoreFromCache : Cache -> Space.Model -> Space.Model
@@ -158,3 +167,10 @@ restoreFromCache cache spaceModel
         iterMode = cache.iterMode
       , baseContents = spaceModel.baseContents ++ cache.hiddenContent
       }
+
+{-| Initial empty cache state -}
+initCache : Cache
+initCache = {
+        iterMode = IterFrame.initMode
+      , hiddenContent = []
+    }
