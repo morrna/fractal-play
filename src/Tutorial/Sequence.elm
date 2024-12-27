@@ -110,6 +110,30 @@ init
           )
         , action = RestoreHiddenContent
         }
+      , { message = HS.text ("Changing one function changes the shapes created by every frame, because at each layer"
+          ++ " each function takes all the shapes from the previous layer as input."
+          )
+        , action = NoAction
+        }
+      , { message = HS.text ("Let's add another iteration."
+          ++ " Change one of the functions again, and watch the shapes that change."
+          )
+        , action = ModifySpace (Space.setIterationDepth 3)
+      }
+      , { message = HS.text ("You might expect the image to just become randomly messy as you add more iterations."
+          ++ " However, under the right conditions, the image will converge to a pattern determined by the functions,"
+          ++ " not the initial shape."
+          )
+        , action = NoAction
+      }
+      , { message = HS.text ("Click the + on the sidebar under \"maximum iteration depth\" to add more iterations."
+          ++ " (Stop if you notice the page slow down."
+          ++ " This app doesn't currently prevent you from adding more shapes than your computer can handle.)"
+          ++ " Once it starts looking like a fractal, play with the frames again!"
+          ++ " The way your changes affect the fractal might surprise you."
+          )
+        , action = NoAction
+      }
       ]
 
 getCurrent : Sequence -> Maybe Step
