@@ -27,7 +27,6 @@ type alias Step
 type StepAction
     = NoAction
     | ModifySpace (Space.Model -> Space.Model)
-    | RestoreFromCache
     | RestoreHiddenContent
 
 

@@ -17,7 +17,6 @@ import Maybe
 import Tutorial.Sequence as TS
 import Space
 import SpaceCommand as SC
-import Space.IterFrame as IterFrame
 import Space.Content as Content
 
 {-| State for tutorial. -}
@@ -36,8 +35,13 @@ init = {
 
 {-| User state to be restored later. -}
 type alias Cache = {
-        iterMode : Maybe IterFrame.Mode
-      , hiddenContent : Maybe (List Content.Content)
+        hiddenContent : Maybe (List Content.Content)
+    }
+
+{-| Initial empty cache state -}
+initCache : Cache
+initCache = {
+        hiddenContent = Nothing
     }
 
 {-| Convenient helper to update sequence. -}
@@ -127,11 +131,6 @@ update message
     = case message of
         Advance -> doStepAction << wrapLiftTutorial (modelLiftSequence TS.advance)
 
-{-| Check if the cached iteration mode is in initial state -}
-isEmptyIterMode : Cache -> Bool
-isEmptyIterMode cache =
-    cache.iterMode == Nothing
-
 {-| Check if there are no hidden contents cached -}
 isEmptyHiddenContent : Cache -> Bool
 isEmptyHiddenContent cache =
@@ -146,10 +145,7 @@ cacheAndModifySpace modifier model
 
         -- Only update the parts of cache that are empty
         newCache = {
-            iterMode = if isEmptyIterMode oldCache
-                then Just model.space.iterMode
-                else oldCache.iterMode
-          , hiddenContent = if isEmptyHiddenContent oldCache
+            hiddenContent = if isEmptyHiddenContent oldCache
                 then Just (List.filter
                     (\content -> not <| List.member content newSpaceModel.baseContents)
                     model.space.baseContents)
@@ -174,11 +170,6 @@ resetHiddenContent : WrapModel -> WrapModel
 resetHiddenContent =
     wrapLiftCache (\m -> { m | hiddenContent = Nothing })
 
-{-| Reset the cache to initial state. -}
-resetCache : WrapModel -> WrapModel
-resetCache =
-    wrapLiftCache (\_ -> initCache)
-
 {-| Update the model based on the current step's action. -}
 doStepAction : WrapModel -> WrapModel
 doStepAction model
@@ -188,34 +179,7 @@ doStepAction model
       in case action of
         TS.NoAction -> model
         TS.ModifySpace modifier -> cacheAndModifySpace modifier model
-        TS.RestoreFromCache ->
-            (resetCache
-                << wrapLiftSpace (restoreFromCache model.tutorial.cache)
-            ) model
-
         TS.RestoreHiddenContent ->
             (resetHiddenContent
                 << wrapLiftSpace (restoreHiddenContent model.tutorial.cache)
             ) model
-
-{-| Restore the state from the cache. -}
-restoreFromCache : Cache -> Space.Model -> Space.Model
-restoreFromCache cache
-    = let
-        updateIterMode = Maybe.withDefault identity
-            <| Maybe.map
-                (\im -> (\m -> { m | iterMode = im }))
-                cache.iterMode
-        updateHiddenContent = Maybe.withDefault identity
-            <| Maybe.map
-                (\hidden -> (\m -> { m | baseContents = m.baseContents ++ hidden }))
-                cache.hiddenContent
-      in
-          updateHiddenContent << updateIterMode
-
-{-| Initial empty cache state -}
-initCache : Cache
-initCache = {
-        iterMode = Nothing
-      , hiddenContent = Nothing
-    }
