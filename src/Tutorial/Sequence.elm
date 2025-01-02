@@ -35,7 +35,7 @@ init : Sequence
 init
     = [
         { message = HS.text "Click to start tutorial"
-        , action = RestoreFromCache
+        , action = NoAction
         }
       , { message = HS.span []
             [ HS.text "These fractals come from "
@@ -132,6 +132,9 @@ init
           ++ " Once it starts looking like a fractal, play with the frames again!"
           ++ " The way your changes affect the fractal might surprise you."
           )
+        , action = NoAction
+      }
+      , { message = HS.text ("That's all for this tutorial. Thanks for following along! If you want to start it again, just click here.")
         , action = NoAction
       }
       ]
