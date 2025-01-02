@@ -13,7 +13,6 @@ module Space.Content exposing (
     )
 
 import Svg.Styled as S
-import Set
 
 import Space.TreeID as ID
 import Space.Shape as Shape

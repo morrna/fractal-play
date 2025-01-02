@@ -34,6 +34,8 @@ incrementer settings sendIncrement current
       , HS.span [] [
             HS.button
                 (
+                    HSA.class "control-background"
+                    ::
                     if valueAtLimit settings.max current
                     then []
                     else [HSE.onClick <| sendIncrement 1]
@@ -42,6 +44,8 @@ incrementer settings sendIncrement current
           , numberLabel current
           , HS.button
                 (
+                    HSA.class "control-background"
+                    ::
                     if valueAtLimit settings.min current
                     then []
                     else [HSE.onClick <| sendIncrement (-1)]
@@ -118,7 +122,7 @@ choice
 choice label choices
     = [
         commandLabel label
-      , HS.select []
+      , HS.select [HSA.class "control-background"]
             <| List.map
                 (\(choiceText, msg) ->
                     HS.option [HSE.onClick msg] [HS.text choiceText]
@@ -139,7 +143,8 @@ textButtonGroup header buttons
                     (\(label, msg) ->
                         HS.button
                             [
-                                HSA.css [
+                                HSA.class "control-background"
+                              , HSA.css [
                                     Css.marginRight (Css.px 5)
                                   , Css.marginLeft (Css.px 5)
                                 ]
