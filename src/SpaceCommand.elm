@@ -31,7 +31,7 @@ view model
         [
             HS.div [HSA.class "space-container"]
                 [HS.map SpaceMessage <| Space.view model]
-          , HS.div [HSA.css [Css.flex (Css.int 1), Css.margin (Css.px 10)], HSA.class "command-bar"]
+          , HS.div [HSA.class "command-bar"]
                 <| List.map (HS.map CommandMessage) <| Command.viewBar model
         ]
 

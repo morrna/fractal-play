@@ -80,11 +80,11 @@ outerFrame = Frame.Golden 801
 
 getStyle : List (Css.Style)
 getStyle =
-    Css.margin (Css.px 10) :: (getWidthHeight outerFrame)
+    Css.margin (Css.px 10) :: getWidthHeight
 
-getWidthHeight : Frame.Def -> List (Css.Style)
-getWidthHeight outer
-    = [ Css.width (Css.px <| Frame.width outer), Css.height (Css.px <| Frame.height outer) ]
+getWidthHeight : List (Css.Style)
+getWidthHeight
+    = [ Css.width (Css.pct 100), Css.height (Css.pct 100) ]
 
 getViewBox : S.Attribute m
 getViewBox = A.viewBox <| Frame.viewBoxString outerFrame

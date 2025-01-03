@@ -2,6 +2,21 @@ body {
     font-family: 'Nunito', sans-serif;
 }
 
+.space-command-container {
+    display: flex;
+    width: 100%;
+}
+
+.space-container {
+    flex: 1 1 0%;
+    margin: 10px;
+}
+
+.command-bar {
+    flex: 0 0 300px;
+    margin: 10px;
+}
+
 .command-label {
     margin-top: 1.5rem;
     margin-bottom: 0.5rem;
