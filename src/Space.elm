@@ -56,6 +56,9 @@ view : Model -> HS.Html Message
 view model = S.svg
     (
         getViewBox
+        :: (A.preserveAspectRatio "xMidYMid meet")
+        :: (A.width "100%")
+        :: (A.height "100%")
         :: (Pointer.dragEvents (always Nothing) PtrOnSpace)
     )
     (
