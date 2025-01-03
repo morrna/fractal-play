@@ -11,7 +11,7 @@ import Tutorial
 main : Program () Tutorial.WrapModel Tutorial.WrapMessage
 main = B.sandbox {
         init = Tutorial.wrapInit
-      , view = HS.toUnstyled << viewWithHeader
+      , view = HS.toUnstyled << viewWithHeaderFooter
       , update = update
     }
 
@@ -19,8 +19,8 @@ main = B.sandbox {
 {-| Main view, including header and tutorial.
     This is defined here because things like the header should be owned by Main.
  -}
-viewWithHeader : Tutorial.WrapModel -> HS.Html Tutorial.WrapMessage
-viewWithHeader model =
+viewWithHeaderFooter : Tutorial.WrapModel -> HS.Html Tutorial.WrapMessage
+viewWithHeaderFooter model =
     HS.div []
         [ HS.header
             [ HSA.css
@@ -38,6 +38,9 @@ viewWithHeader model =
             , HS.map Tutorial.TutorialMessage <| Tutorial.view model.tutorial
             ]
         , HS.map Tutorial.SpaceMessage <| SC.view model.space
+        , HS.footer
+            []
+            [ HS.p [] [ HS.a [ HSA.href "LICENSE.txt" ] [ HS.text "© 2024 Nathan Morrison" ] ] ]
         ]
 
 
