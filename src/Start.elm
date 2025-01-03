@@ -30,22 +30,18 @@ setDefaultIterFrame : IterFrame.Def -> Space.Model -> Space.Model
 setDefaultIterFrame ifDef model =
     { model | defaultIterFrame = ifDef }
 
-setReferenceFrame : Maybe Frame.Def -> Space.Model -> Space.Model
-setReferenceFrame refFrame model =
-    { model | referenceFrame = refFrame }
-
 {- ## Sierpinski triangle -}
 
 sierpinski : Space.Model
 sierpinski
     = Space.addIterFrame (ID.Trunk "f3")
-        (\m -> sierpinskiThird m.outerFrame)
+        (\m -> sierpinskiThird m.referenceFrame)
         <| Space.addIterFrame (ID.Trunk "f2")
-            (\m -> sierpinskiSecond m.outerFrame)
+            (\m -> sierpinskiSecond m.referenceFrame)
         <| Space.addIterFrame (ID.Trunk "f1")
-            (\m -> sierpinskiFirst m.outerFrame)
+            (\m -> sierpinskiFirst m.referenceFrame)
         <| Space.addContentToModel (ID.Trunk "start")
-            (\m id -> Content.makeShape id <| sierpinskiStartingTriangle m.outerFrame)
+            (\m id -> Content.makeShape id <| sierpinskiStartingTriangle m.referenceFrame)
         <| setDefaultIterFrame sierpinskiTransform
         <| Space.emptyModel <| Frame.Golden 800
 
@@ -87,14 +83,13 @@ blue = Clr.rgb 0 0 1
 dragon : Space.Model
 dragon
     = Space.addIterFrame (ID.Trunk "f2")
-        (\m -> dragonSecond m.outerFrame)
+        (\m -> dragonSecond m.referenceFrame)
         <| Space.addIterFrame (ID.Trunk "f1")
-            (\m -> dragonFirst m.outerFrame)
+            (\m -> dragonFirst m.referenceFrame)
         <| Space.addContentToModel (ID.Trunk "start")
-            (\m id -> Content.makeShape id <| dragonStarter m.outerFrame)
+            (\m id -> Content.makeShape id <| dragonStarter m.referenceFrame)
         <| setDefaultIterFrame dragonDefaultTransform
-        <| setReferenceFrame (Just <| Frame.Golden 400)
-        <| Space.emptyModel <| Frame.Golden 800
+        <| Space.emptyModel <| Frame.Golden 400
 
 {-| Get the unit of scale best for the dragon curve. -}
 dragonScale : Frame.Def -> Float
@@ -150,27 +145,26 @@ dragonDefaultTransform
 sierpinskiCarpet : Space.Model
 sierpinskiCarpet =
     Space.addIterFrame (ID.Trunk "f8")
-        (\m -> carpetFrameTopRight m.outerFrame)
+        (\m -> carpetFrameTopRight m.referenceFrame)
         <| Space.addIterFrame (ID.Trunk "f7")
-            (\m -> carpetFrameTopCenter m.outerFrame)
+            (\m -> carpetFrameTopCenter m.referenceFrame)
         <| Space.addIterFrame (ID.Trunk "f6")
-            (\m -> carpetFrameTopLeft m.outerFrame)
+            (\m -> carpetFrameTopLeft m.referenceFrame)
         <| Space.addIterFrame (ID.Trunk "f5")
-            (\m -> carpetFrameMiddleRight m.outerFrame)
+            (\m -> carpetFrameMiddleRight m.referenceFrame)
         <| Space.addIterFrame (ID.Trunk "f4")
-            (\m -> carpetFrameMiddleLeft m.outerFrame)
+            (\m -> carpetFrameMiddleLeft m.referenceFrame)
         <| Space.addIterFrame (ID.Trunk "f3")
-            (\m -> carpetFrameBottomRight m.outerFrame)
+            (\m -> carpetFrameBottomRight m.referenceFrame)
         <| Space.addIterFrame (ID.Trunk "f2")
-            (\m -> carpetFrameBottomCenter m.outerFrame)
+            (\m -> carpetFrameBottomCenter m.referenceFrame)
         <| Space.addIterFrame (ID.Trunk "f1")
-            (\m -> carpetFrameBottomLeft m.outerFrame)
+            (\m -> carpetFrameBottomLeft m.referenceFrame)
         <| Space.addContentToModel (ID.Trunk "start")
-            (\m id -> Content.makeShape id <| sierpinskiCarpetStartingSquare m.outerFrame)
+            (\m id -> Content.makeShape id <| sierpinskiCarpetStartingSquare m.referenceFrame)
         <| Space.setIterationDepth 3
         <| setDefaultIterFrame sierpinskiCarpetTransform
-        <| carpetSetReferenceFrame
-        <| Space.emptyModel <| Frame.Golden 800
+        <| Space.emptyModel <| carpetReferenceFrame
 
 {-| Get the length of the side of the starting square for the Sierpinski carpet. -}
 carpetSquareLength : Frame.Def -> Float
@@ -181,14 +175,11 @@ carpetScale : Frame.Def -> Float
 carpetScale frame =
     carpetSquareLength frame / 3  -- Scaling to 1/3 of the frame's height
 
-carpetSetReferenceFrame : Space.Model -> Space.Model
-carpetSetReferenceFrame model
-    = setReferenceFrame
-        (Just <| Frame.Rectangle
-            (carpetSquareLength model.outerFrame)
-            (carpetSquareLength model.outerFrame)
-        )
-        model
+carpetReferenceFrame : Frame.Def
+carpetReferenceFrame =
+    Frame.Rectangle
+        (carpetSquareLength Space.outerFrame)
+        (carpetSquareLength Space.outerFrame)
 
 {-| Get the starting square for the Sierpinski carpet. -}
 sierpinskiCarpetStartingSquare : Frame.Def -> Shape.Def
