@@ -7,6 +7,7 @@ module Space exposing (
       , view
       , update
       , setIterationDepth
+      , outerFrame
     )
 
 import Html.Styled as HS
@@ -26,8 +27,7 @@ import Space.Move as Move
 {-| ## View interface -}
 
 type alias Model = {
-        outerFrame : Frame.Def
-      , referenceFrame : Maybe Frame.Def
+        referenceFrame : Frame.Def
       , baseContents : List C.Content
       , interact : Interact
       , iterMode : IterFrame.Mode
@@ -39,11 +39,11 @@ type Message
     = PtrOnSpace (Pointer.Update (Maybe C.Selected))
     | PtrSelect C.Selected
 
+{-| Create an empty model with the given reference frame. -}
 emptyModel : Frame.Def -> Model
 emptyModel frame
     = {
-        outerFrame = frame
-      , referenceFrame = Nothing
+        referenceFrame = frame
       , baseContents = []
       , interact = {
           pointer = Pointer.emptyState Nothing
@@ -56,14 +56,14 @@ view : Model -> HS.Html Message
 view model = S.svg
     (
         [
-            A.css <| getStyle model
-          , getViewBox model
+            A.css <| getStyle
+          , getViewBox
         ]
         ++ (Pointer.dragEvents (always Nothing) PtrOnSpace)
     )
     (
         K.lazyNode "g" [] showContent (getContents model)
-        :: maybeShowReferenceFrame model
+        :: showReferenceFrame model
     )
 
 update : Message -> Model -> Model
@@ -73,23 +73,21 @@ update m = case m of
 
 {- ## Frame SVG -}
 
-getStyle : Model -> List (Css.Style)
-getStyle model =
-    let
-        baseStyles = Css.margin (Css.px 10) :: (getWidthHeight <| model.outerFrame)
-    in
-    case model.referenceFrame of
-        Nothing ->
-            Css.border2 (Css.px 1) Css.solid :: baseStyles
-        Just _ ->
-            baseStyles
+{-| The rectangle that defines the outer frame of the SVG. -}
+outerFrame: Frame.Def
+outerFrame = Frame.Golden 801
+ -- When the reference frame is 800, having the space be 800 leads to a bad looking edge.
+
+getStyle : List (Css.Style)
+getStyle =
+    Css.margin (Css.px 10) :: (getWidthHeight outerFrame)
 
 getWidthHeight : Frame.Def -> List (Css.Style)
 getWidthHeight outer
     = [ Css.width (Css.px <| Frame.width outer), Css.height (Css.px <| Frame.height outer) ]
 
-getViewBox : Model -> S.Attribute m
-getViewBox model = A.viewBox <| Frame.viewBoxString model.outerFrame
+getViewBox : S.Attribute m
+getViewBox = A.viewBox <| Frame.viewBoxString outerFrame
 
 {- ## Contents -}
 
@@ -112,8 +110,7 @@ addIterFrame
     -> Model
 addIterFrame id iterDefGen model =
     let
-        frameDef = Maybe.withDefault model.outerFrame model.referenceFrame
-        cGen m id2 = C.makeIterFrame id2 frameDef (iterDefGen m)
+        cGen m id2 = C.makeIterFrame id2 model.referenceFrame (iterDefGen m)
     in
     addContentToModel id cGen model
 
@@ -174,26 +171,23 @@ doContentSelect
 doContentSelect content
     = liftInteract (updatePointer <| Pointer.updatePayload (always (Just content)))
 
-maybeShowReferenceFrame : Model -> List (S.Svg Message)
-maybeShowReferenceFrame model =
-    case model.referenceFrame of
-        Just frame ->
-            if model.iterMode.showIterFrames then
-                [S.rect
-                    [ A.x (String.fromFloat (-(Frame.width frame) / 2))
-                    , A.y (String.fromFloat (-(Frame.height frame) / 2))
-                    , A.width (String.fromFloat (Frame.width frame))
-                    , A.height (String.fromFloat (Frame.height frame))
-                    , A.fill "none"
-                    , A.stroke "black"
-                    , A.strokeWidth "1"
-                    ]
-                    []
-                ]
-            else
-                []
-        Nothing ->
+showReferenceFrame : Model -> List (S.Svg Message)
+showReferenceFrame model =
+    if model.iterMode.showIterFrames
+    then
+        [S.rect
+            [ A.x (String.fromFloat (-(Frame.width model.referenceFrame) / 2))
+            , A.y (String.fromFloat (-(Frame.height model.referenceFrame) / 2))
+            , A.width (String.fromFloat (Frame.width model.referenceFrame))
+            , A.height (String.fromFloat (Frame.height model.referenceFrame))
+            , A.fill "none"
+            , A.stroke "black"
+            , A.strokeWidth "1"
+            ]
             []
+        ]
+    else
+        []
 
 {-| Set the iteration depth on a model. -}
 setIterationDepth : Int -> Model -> Model
