@@ -55,11 +55,8 @@ emptyModel frame
 view : Model -> HS.Html Message
 view model = S.svg
     (
-        [
-            A.css <| getStyle
-          , getViewBox
-        ]
-        ++ (Pointer.dragEvents (always Nothing) PtrOnSpace)
+        getViewBox
+        :: (Pointer.dragEvents (always Nothing) PtrOnSpace)
     )
     (
         K.lazyNode "g" [] showContent (getContents model)
@@ -77,14 +74,6 @@ update m = case m of
 outerFrame: Frame.Def
 outerFrame = Frame.Golden 801
  -- When the reference frame is 800, having the space be 800 leads to a bad looking edge.
-
-getStyle : List (Css.Style)
-getStyle =
-    Css.margin (Css.px 10) :: getWidthHeight
-
-getWidthHeight : List (Css.Style)
-getWidthHeight
-    = [ Css.width (Css.pct 100), Css.height (Css.pct 100) ]
 
 getViewBox : S.Attribute m
 getViewBox = A.viewBox <| Frame.viewBoxString outerFrame
