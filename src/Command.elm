@@ -28,7 +28,8 @@ import Command.Components exposing (
 
 {-| Interactions with the command controls outside the drawing space -}
 type Message
-    = ChangeIterationDepth Int
+    = DoNothing
+    | ChangeIterationDepth Int
     | ToggleShowIterFrames
     | ChangeNumIterFrames Int
     | Reset Start.Which
@@ -48,6 +49,7 @@ viewBar {iterMode, baseContents}
               , ("Dragon", Reset Start.Dragon)
               , ("Sierpinski carpet", Reset Start.SierpinskiCarpet)
             ]
+            DoNothing
         ++ toggle "show iteration frames" ToggleShowIterFrames iterMode.showIterFrames
         ++ incrementer
             { incrementerDefaults | label = "maximum iteration depth" , min = Just 0}
@@ -75,6 +77,8 @@ update
    -> Space.Model
 update msg model =
     case msg of
+        DoNothing
+            -> model
         ChangeIterationDepth change
             -> { model |
                 iterMode = let oldIterMode = model.iterMode

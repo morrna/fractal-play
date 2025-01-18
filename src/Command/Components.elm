@@ -15,11 +15,12 @@ import Html.Styled.Events as HSE
 import List
 import String
 import Css
+import Json.Decode as JD
 
 {-| Common heading for command controls -}
 commandLabel : String -> HS.Html msg
 commandLabel text =
-    HS.h4 
+    HS.h4
         [ HSA.class "command-label" ]
         [ HS.text text ]
 
@@ -118,17 +119,37 @@ toggle label sendToggle current
 choice
     : String             {- component label -}
    -> List (String, msg) {- choices, as a list of ( label text, message ) -}
+   -> msg                {- default message value, only used in case of error -}
    -> List (HS.Html msg)
-choice label choices
-    = [
+choice label choices defaultMsg
+    = let
+        valLabelValMsg = List.indexedMap
+            (\ix (lbl, msg) -> ((String.fromInt ix, lbl), (String.fromInt ix, msg)))
+            choices
+        valLabel = List.map Tuple.first valLabelValMsg
+        valMsg = List.map Tuple.second valLabelValMsg
+        getMsg = \val
+            -> Tuple.second
+             <| Maybe.withDefault ("impossible", defaultMsg)
+                <| List.head
+                <| List.filter (\(v, _) -> v == val) valMsg
+    in [
         commandLabel label
-      , HS.select [HSA.class "control-background"]
+      , HS.select [HSA.class "control-background", onChange getMsg]
             <| List.map
-                (\(choiceText, msg) ->
-                    HS.option [HSE.onClick msg] [HS.text choiceText]
+                (\(val, lbl) ->
+                    HS.option [HSA.value val] [HS.text lbl]
                 )
-                choices
+                valLabel
     ]
+
+{-| An onChange event handler as usually used for select elements -}
+onChange
+    : (String -> msg) {- values to messages -}
+   -> HS.Attribute msg
+onChange toMsg
+    = HSE.on "change"
+        <| JD.map toMsg HSE.targetValue
 
 {-| A group of buttons with text labels and a header -}
 textButtonGroup
