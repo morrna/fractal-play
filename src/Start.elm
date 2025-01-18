@@ -83,11 +83,11 @@ blue = Clr.rgb 0 0 1
 dragon : Space.Model
 dragon
     = Space.addIterFrame (ID.Trunk "f2")
-        (\m -> dragonSecond m.referenceFrame)
+        (\m -> dragonSecond Space.outerFrame)
         <| Space.addIterFrame (ID.Trunk "f1")
-            (\m -> dragonFirst m.referenceFrame)
+            (\m -> dragonFirst Space.outerFrame)
         <| Space.addContentToModel (ID.Trunk "start")
-            (\m id -> Content.makeShape id <| dragonStarter m.referenceFrame)
+            (\m id -> Content.makeShape id <| dragonStarter Space.outerFrame)
         <| setDefaultIterFrame dragonDefaultTransform
         <| Space.emptyModel <| Frame.Golden 400
 
