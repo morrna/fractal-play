@@ -11,7 +11,6 @@ module Space exposing (
     )
 
 import Html.Styled as HS
-import Css
 import Svg.Styled as S
 import Svg.Styled.Attributes as A
 import Svg.Styled.Keyed as K
