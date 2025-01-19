@@ -119,37 +119,46 @@ toggle label sendToggle current
 choice
     : String             {- component label -}
    -> List (String, msg) {- choices, as a list of ( label text, message ) -}
-   -> msg                {- default message value, only used in case of error -}
    -> List (HS.Html msg)
-choice label choices defaultMsg
+choice label choices
     = let
-        valLabelValMsg = List.indexedMap
-            (\ix (lbl, msg) -> ((String.fromInt ix, lbl), (String.fromInt ix, msg)))
-            choices
-        valLabel = List.map Tuple.first valLabelValMsg
-        valMsg = List.map Tuple.second valLabelValMsg
-        getMsg = \val
-            -> Tuple.second
-             <| Maybe.withDefault ("impossible", defaultMsg)
-                <| List.head
-                <| List.filter (\(v, _) -> v == val) valMsg
+        (labels, messages) = List.unzip choices
+        (values, onChange) = onChangeDiscrete messages
     in [
         commandLabel label
-      , HS.select [HSA.class "control-background", onChange getMsg]
-            <| List.map
-                (\(val, lbl) ->
+      , HS.select [HSA.class "control-background", onChange]
+            <| List.map2
+                (\val lbl ->
                     HS.option [HSA.value val] [HS.text lbl]
                 )
-                valLabel
+                values
+                labels
     ]
 
-{-| An onChange event handler as usually used for select elements -}
-onChange
-    : (String -> msg) {- values to messages -}
-   -> HS.Attribute msg
-onChange toMsg
-    = HSE.on "change"
-        <| JD.map toMsg HSE.targetValue
+{-| An onChange event handler for a list of discrete messages.
+
+    It returns `(values_list, onChange_attribute)`. Use the values to set up the
+    options available for the element the attribute is applied to.
+ -}
+onChangeDiscrete
+    : List msg
+   -> (List String, HS.Attribute msg)
+onChangeDiscrete messages
+    = let
+        valMsg = List.indexedMap (\ix msg -> (String.fromInt ix, msg)) messages
+        values = List.map Tuple.first valMsg
+        getMsg val = Maybe.map Tuple.second
+            <| List.head
+            <| List.filter (\(v, _) -> v == val) valMsg
+        attribute = HSE.on "change"
+            <| JD.andThen
+                (\val -> case val of
+                    Just m -> JD.succeed m
+                    Nothing -> JD.fail "No message for value"
+                )
+            <| JD.map getMsg HSE.targetValue
+    in
+        (values, attribute)
 
 {-| A group of buttons with text labels and a header -}
 textButtonGroup
