@@ -9,6 +9,7 @@ module Tutorial.Sequence exposing (
 
 import Html.Styled as HS
 import Html.Styled.Attributes as HSA
+import UndoList as U
 
 import Space
 import Space.Content as Content
@@ -57,10 +58,10 @@ init
                 oldIterMode = spaceModel.iterMode
                 -- Drop all but the first IterFrame
                 idsToDrop = Maybe.withDefault []
-                    (List.tail (Content.getIterFrameIDs spaceModel.baseContents))
-                newContent = List.foldr Content.drop spaceModel.baseContents idsToDrop
+                    (List.tail (Content.getIterFrameIDs spaceModel.baseContents.present))
+                newContent = List.foldr Content.drop spaceModel.baseContents.present idsToDrop
             in { spaceModel |
-                baseContents = newContent
+                baseContents = U.new newContent spaceModel.baseContents
               , iterMode = { oldIterMode |
                   depth = 0
                 , showIterFrames = True

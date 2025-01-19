@@ -11,6 +11,7 @@ import Css
 import List
 import Maybe
 import Svg.Styled as S
+import UndoList as U
 
 import Space
 import Space.Content as Content
@@ -57,7 +58,7 @@ viewBar {iterMode, baseContents}
         ++ incrementer
             { incrementerDefaults | label = "# iteration frames" , min = Just 0}
             ChangeNumIterFrames
-            (Content.numIterFrames baseContents)
+            (Content.numIterFrames baseContents.present)
         ++ iterFrameKey iterMode.showIterFrames
 
 layerVisibilityControls : List (HS.Html Message)
@@ -90,7 +91,9 @@ update msg model =
                 then Maybe.withDefault model <|
                     Maybe.map
                         (\iterFrameIDtoDrop -> { model |
-                            baseContents = Content.drop iterFrameIDtoDrop model.baseContents
+                            baseContents = U.new
+                                (Content.drop iterFrameIDtoDrop model.baseContents.present)
+                                model.baseContents
                         })
                         (getIterFrameIDtoDrop model)
                 else if change == 1
@@ -113,7 +116,7 @@ update msg model =
  -}
 getIterFrameIDtoDrop : Space.Model -> Maybe ID.TreeID
 getIterFrameIDtoDrop {baseContents}
-    = List.head <| List.reverse <| Content.getIterFrameIDs baseContents
+    = List.head <| List.reverse <| Content.getIterFrameIDs baseContents.present
 
 {-| Get an ID for a new IterFrame to add to the baseContents.
 
@@ -123,7 +126,7 @@ getIterFrameIDtoDrop {baseContents}
  -}
 getNewIterFrameID : Space.Model -> ID.TreeID
 getNewIterFrameID {baseContents}
-    = ID.Trunk <| "f" ++ String.fromInt (1 + Content.numIterFrames baseContents)
+    = ID.Trunk <| "f" ++ String.fromInt (1 + Content.numIterFrames baseContents.present)
 
 iterFrameKey
     : Bool

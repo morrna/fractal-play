@@ -13,6 +13,7 @@ import Html.Styled.Attributes as HSA
 import Html.Styled.Events as HSE
 import Css
 import Maybe
+import UndoList as U
 
 import Tutorial.Sequence as TS
 import Space
@@ -147,8 +148,8 @@ cacheAndModifySpace modifier model
         newCache = {
             hiddenContent = if isEmptyHiddenContent oldCache
                 then Just (List.filter
-                    (\content -> not <| List.member content newSpaceModel.baseContents)
-                    model.space.baseContents)
+                    (\content -> not <| List.member content newSpaceModel.baseContents.present)
+                    model.space.baseContents.present)
                 else oldCache.hiddenContent
           }
 
@@ -162,7 +163,9 @@ cacheAndModifySpace modifier model
 restoreHiddenContent : Cache -> Space.Model -> Space.Model
 restoreHiddenContent cache spaceModel =
     { spaceModel |
-        baseContents = spaceModel.baseContents ++ Maybe.withDefault [] cache.hiddenContent
+        baseContents = U.new
+            (spaceModel.baseContents.present ++ Maybe.withDefault [] cache.hiddenContent)
+            spaceModel.baseContents
     }
 
 {-| Reset the hidden content portion of the cache -}

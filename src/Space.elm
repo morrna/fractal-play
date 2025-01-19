@@ -16,6 +16,8 @@ import Svg.Styled.Attributes as A
 import Svg.Styled.Keyed as K
 import List
 import Maybe as M
+import UndoList as U
+
 import Space.Content as C
 import Space.Frame as Frame
 import Space.IterFrame as IterFrame
@@ -27,7 +29,7 @@ import Space.Move as Move
 
 type alias Model = {
         referenceFrame : Frame.Def
-      , baseContents : List C.Content
+      , baseContents : U.UndoList (List C.Content)
       , interact : Interact
       , iterMode : IterFrame.Mode
       -- When adding a new IterFrame, use this.
@@ -43,7 +45,7 @@ emptyModel : Frame.Def -> Model
 emptyModel frame
     = {
         referenceFrame = frame
-      , baseContents = []
+      , baseContents = U.fresh []
       , interact = {
           pointer = Pointer.emptyState Nothing
       }
@@ -84,15 +86,21 @@ getViewBox = A.viewBox <| Frame.viewBoxString outerFrame
 
 {-| Build the content list from the base contents and the iterations specified by iterMode -}
 getContents : Model -> List (String, C.Content)
-getContents m = C.getAllToShow m.iterMode m.baseContents
+getContents m = C.getAllToShow m.iterMode m.baseContents.present
 
+{-| Add content to the model's base contents.
+
+    Useful for initial setup. Does not create a new undo state.
+ -}
 addContentToModel
     : ID.TreeID -- ID for content
     -> (Model -> ID.TreeID -> C.Content) -- constructs content from ID
     -> Model
     -> Model
 addContentToModel cid cGen model
-    = { model | baseContents = C.appendNew (cGen model) cid model.baseContents }
+    = liftBaseContents
+        (C.appendNew (cGen model) cid)
+        model
 
 addIterFrame
     : ID.TreeID
@@ -130,12 +138,15 @@ updatePointer
     -> Interact
 updatePointer ptrUpdate interact = { interact | pointer = ptrUpdate interact.pointer }
 
-{-| Given an updater for baseContents, make an updater for Model. -}
+{-| Given an updater for baseContents, make an updater for Model.
+
+    Does not create a new undo state.
+ -}
 liftBaseContents
     : (List C.Content -> List C.Content)
     -> Model
     -> Model
-liftBaseContents f mdl = { mdl | baseContents = f mdl.baseContents }
+liftBaseContents f mdl = { mdl | baseContents = U.mapPresent f mdl.baseContents }
 
 updatePtrOnSpace
     : Pointer.Update (Maybe C.Selected)
