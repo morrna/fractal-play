@@ -34,6 +34,7 @@ type Message
     | ChangeNumIterFrames Int
     | Reset Start.Which
     | UpdateOnlyShowLastLayer Bool
+    | UndoList (U.Msg ())
 
 {-| Display a vertical bar with controls for configuration.
     Currently this includes the maximum iteration depth and whether to show
@@ -43,27 +44,32 @@ viewBar
     : Space.Model
    -> List (HS.Html Message)
 viewBar {iterMode, baseContents}
-    = choice "Start from"
+    = textButtonGroup "Canvas State"
+        [
+            ("Undo", UndoList U.Undo)
+          , ("Redo", UndoList U.Redo)
+        ]
+        ++ choice "Start From"
             [
                 ("Sierpinski triangle", Reset Start.Sierpinski)
               , ("Dragon", Reset Start.Dragon)
               , ("Sierpinski carpet", Reset Start.SierpinskiCarpet)
             ]
-        ++ toggle "show iteration frames" ToggleShowIterFrames iterMode.showIterFrames
+        ++ toggle "Show Iteration Frames" ToggleShowIterFrames iterMode.showIterFrames
         ++ incrementer
-            { incrementerDefaults | label = "maximum iteration depth" , min = Just 0}
+            { incrementerDefaults | label = "Maximum Iteration Depth" , min = Just 0}
             ChangeIterationDepth
             iterMode.depth
         ++ layerVisibilityControls
         ++ incrementer
-            { incrementerDefaults | label = "# iteration frames" , min = Just 0}
+            { incrementerDefaults | label = "# Iteration Frames" , min = Just 0}
             ChangeNumIterFrames
             (Content.numIterFrames baseContents.present)
         ++ iterFrameKey iterMode.showIterFrames
 
 layerVisibilityControls : List (HS.Html Message)
 layerVisibilityControls
-    = textButtonGroup "layer visibility"
+    = textButtonGroup "Layer Visibility"
         [
             ("Show All Layers", UpdateOnlyShowLastLayer False)
           , ("Show Last Layer", UpdateOnlyShowLastLayer True)
@@ -106,6 +112,10 @@ update msg model =
                 iterMode = IterFrame.updateOnlyShowLastLayer
                     newOnlyShowLastLayer model.iterMode
             }
+        UndoList ulMsg
+            -> { model |
+                baseContents = U.update (always identity) ulMsg model.baseContents
+            }
 
 {-| Get the ID of the iter frame to drop when the number of iter frames is
     reduced.
@@ -134,7 +144,7 @@ iterFrameKey showIterFrames
     = if showIterFrames
         then
         [
-            commandLabel "iteration frame controls"
+            commandLabel "Iteration Frame Controls"
           , S.svg
                 [
                     HSA.css
