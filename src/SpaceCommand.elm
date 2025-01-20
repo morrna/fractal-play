@@ -3,6 +3,7 @@ module SpaceCommand exposing (
       , init
       , view
       , update
+      , subscriptions
     )
 
 import List
@@ -43,3 +44,6 @@ update message
     = case message of
         SpaceMessage msg -> Space.update msg
         CommandMessage msg -> Command.update msg
+
+subscriptions : Sub Message
+subscriptions = Sub.map CommandMessage Command.subscriptions

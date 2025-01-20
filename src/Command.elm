@@ -3,6 +3,7 @@ module Command exposing (
         Message(..)
       , viewBar
       , update
+      , subscriptions
     )
 
 import Html.Styled as HS
@@ -26,6 +27,7 @@ import Command.Components exposing (
       , textButtonGroup
       , commandLabel
     )
+import Command.Keyboard as Keyboard
 
 {-| Interactions with the command controls outside the drawing space -}
 type Message
@@ -158,3 +160,6 @@ iterFrameKey showIterFrames
                 ]
         ]
         else []
+
+subscriptions : Sub Message
+subscriptions = Sub.map UndoList Keyboard.undoRedoSubscriptions

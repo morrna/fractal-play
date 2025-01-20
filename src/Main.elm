@@ -9,10 +9,11 @@ import SpaceCommand as SC
 import Tutorial
 
 main : Program () Tutorial.WrapModel Tutorial.WrapMessage
-main = B.sandbox {
-        init = Tutorial.wrapInit
+main = B.element {
+        init = \_ -> (Tutorial.wrapInit, Cmd.none)
       , view = HS.toUnstyled << viewWithHeaderFooter
-      , update = update
+      , update = \msg model -> (update msg model, Cmd.none)
+      , subscriptions = \_ -> Sub.map Tutorial.SpaceMessage SC.subscriptions
     }
 
 
