@@ -203,8 +203,15 @@ updatePtrOnSpace ptrUpd mdl
                 transformer
                 mdl.interact.pointer
                 ptrUpd
+
+        {- Only add to the undo stack when first turning on.
+           This saves the state from before the pointer starts moving to the stack.
+           While in motion, only the present state is updated. -}
+        lifter = if Pointer.isTurningOn mdl.interact.pointer newPointerState
+            then liftBaseContentsNew
+            else liftBaseContents
     in
-        liftBaseContents (List.map mungeContent)
+        lifter (List.map mungeContent)
             <| liftInteract (updatePointer <| always newPointerState) mdl
 
 {-| Update the model when a content is selected. -}
