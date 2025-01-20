@@ -97,8 +97,7 @@ update msg model =
                         })
                         (getIterFrameIDtoDrop model)
                 else if change == 1
-                -- Iterframes are last in the list of baseContents, so just append a new one
-                then Space.addIterFrame (getNewIterFrameID model) (.defaultIterFrame) model
+                then Space.addIterFrameNew (getNewIterFrameID model) (.defaultIterFrame) model
                 else model
         Reset whichStart
             -> Start.get whichStart

@@ -4,6 +4,7 @@ module Space exposing (
       , emptyModel
       , addContentToModel
       , addIterFrame
+      , addIterFrameNew
       , view
       , update
       , setIterationDepth
@@ -102,6 +103,24 @@ addContentToModel cid cGen model
         (C.appendNew (cGen model) cid)
         model
 
+{-| Add content to the model's base contents.
+
+    Creates a new undo state.
+ -}
+addContentToModelNew
+    : ID.TreeID -- ID for content
+    -> (Model -> ID.TreeID -> C.Content) -- constructs content from ID
+    -> Model
+    -> Model
+addContentToModelNew cid cGen model
+    = liftBaseContentsNew
+        (C.appendNew (cGen model) cid)
+        model
+
+{-| Add an IterFrame to the model's base contents.
+
+    Does not create a new undo state.
+ -}
 addIterFrame
     : ID.TreeID
     -> (Model -> IterFrame.Def)
@@ -112,6 +131,21 @@ addIterFrame id iterDefGen model =
         cGen m id2 = C.makeIterFrame id2 model.referenceFrame (iterDefGen m)
     in
     addContentToModel id cGen model
+
+{-| Add an IterFrame to the model's base contents.
+
+    Creates a new undo state.
+ -}
+addIterFrameNew
+    : ID.TreeID
+    -> (Model -> IterFrame.Def)
+    -> Model
+    -> Model
+addIterFrameNew id iterDefGen model =
+    let
+        cGen m id2 = C.makeIterFrame id2 model.referenceFrame (iterDefGen m)
+    in
+        addContentToModelNew id cGen model
 
 showContent : C.Content -> S.Svg Message
 showContent
@@ -147,6 +181,14 @@ liftBaseContents
     -> Model
     -> Model
 liftBaseContents f mdl = { mdl | baseContents = U.mapPresent f mdl.baseContents }
+
+{-| Given an updater for baseContents, update the Model and add a new undo state. -}
+liftBaseContentsNew
+    : (List C.Content -> List C.Content)
+    -> Model
+    -> Model
+liftBaseContentsNew f mdl
+    = { mdl | baseContents = U.new (f mdl.baseContents.present) mdl.baseContents }
 
 updatePtrOnSpace
     : Pointer.Update (Maybe C.Selected)
