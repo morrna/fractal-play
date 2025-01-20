@@ -6,6 +6,7 @@ module Space.Pointer exposing (
       , doDrag
       , emptyState
       , select
+      , isTurningOn
       , getPayload {- not currently in use, but useful for debugging -}
     )
 
@@ -150,3 +151,14 @@ select makeMsg target
     = List.map A.fromUnstyled <| [
         E.onDown <| always <| makeMsg target
     ]
+
+{-| Check whether a pointer just turned on.
+
+    Args: old state, new state
+ -}
+isTurningOn : State a -> State a -> Bool
+isTurningOn old new
+    = case (old, new) of
+        (Off _, Off _) -> False
+        (Off _, _) -> True
+        _ -> False

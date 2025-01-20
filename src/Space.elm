@@ -4,6 +4,7 @@ module Space exposing (
       , emptyModel
       , addContentToModel
       , addIterFrame
+      , addIterFrameNew
       , view
       , update
       , setIterationDepth
@@ -11,12 +12,13 @@ module Space exposing (
     )
 
 import Html.Styled as HS
-import Css
 import Svg.Styled as S
 import Svg.Styled.Attributes as A
 import Svg.Styled.Keyed as K
 import List
 import Maybe as M
+import UndoList as U
+
 import Space.Content as C
 import Space.Frame as Frame
 import Space.IterFrame as IterFrame
@@ -28,7 +30,7 @@ import Space.Move as Move
 
 type alias Model = {
         referenceFrame : Frame.Def
-      , baseContents : List C.Content
+      , baseContents : U.UndoList (List C.Content)
       , interact : Interact
       , iterMode : IterFrame.Mode
       -- When adding a new IterFrame, use this.
@@ -44,7 +46,7 @@ emptyModel : Frame.Def -> Model
 emptyModel frame
     = {
         referenceFrame = frame
-      , baseContents = []
+      , baseContents = U.fresh []
       , interact = {
           pointer = Pointer.emptyState Nothing
       }
@@ -85,16 +87,40 @@ getViewBox = A.viewBox <| Frame.viewBoxString outerFrame
 
 {-| Build the content list from the base contents and the iterations specified by iterMode -}
 getContents : Model -> List (String, C.Content)
-getContents m = C.getAllToShow m.iterMode m.baseContents
+getContents m = C.getAllToShow m.iterMode m.baseContents.present
 
+{-| Add content to the model's base contents.
+
+    Useful for initial setup. Does not create a new undo state.
+ -}
 addContentToModel
     : ID.TreeID -- ID for content
     -> (Model -> ID.TreeID -> C.Content) -- constructs content from ID
     -> Model
     -> Model
 addContentToModel cid cGen model
-    = { model | baseContents = C.appendNew (cGen model) cid model.baseContents }
+    = liftBaseContents
+        (C.appendNew (cGen model) cid)
+        model
 
+{-| Add content to the model's base contents.
+
+    Creates a new undo state.
+ -}
+addContentToModelNew
+    : ID.TreeID -- ID for content
+    -> (Model -> ID.TreeID -> C.Content) -- constructs content from ID
+    -> Model
+    -> Model
+addContentToModelNew cid cGen model
+    = liftBaseContentsNew
+        (C.appendNew (cGen model) cid)
+        model
+
+{-| Add an IterFrame to the model's base contents.
+
+    Does not create a new undo state.
+ -}
 addIterFrame
     : ID.TreeID
     -> (Model -> IterFrame.Def)
@@ -105,6 +131,21 @@ addIterFrame id iterDefGen model =
         cGen m id2 = C.makeIterFrame id2 model.referenceFrame (iterDefGen m)
     in
     addContentToModel id cGen model
+
+{-| Add an IterFrame to the model's base contents.
+
+    Creates a new undo state.
+ -}
+addIterFrameNew
+    : ID.TreeID
+    -> (Model -> IterFrame.Def)
+    -> Model
+    -> Model
+addIterFrameNew id iterDefGen model =
+    let
+        cGen m id2 = C.makeIterFrame id2 model.referenceFrame (iterDefGen m)
+    in
+        addContentToModelNew id cGen model
 
 showContent : C.Content -> S.Svg Message
 showContent
@@ -131,12 +172,23 @@ updatePointer
     -> Interact
 updatePointer ptrUpdate interact = { interact | pointer = ptrUpdate interact.pointer }
 
-{-| Given an updater for baseContents, make an updater for Model. -}
+{-| Given an updater for baseContents, make an updater for Model.
+
+    Does not create a new undo state.
+ -}
 liftBaseContents
     : (List C.Content -> List C.Content)
     -> Model
     -> Model
-liftBaseContents f mdl = { mdl | baseContents = f mdl.baseContents }
+liftBaseContents f mdl = { mdl | baseContents = U.mapPresent f mdl.baseContents }
+
+{-| Given an updater for baseContents, update the Model and add a new undo state. -}
+liftBaseContentsNew
+    : (List C.Content -> List C.Content)
+    -> Model
+    -> Model
+liftBaseContentsNew f mdl
+    = { mdl | baseContents = U.new (f mdl.baseContents.present) mdl.baseContents }
 
 updatePtrOnSpace
     : Pointer.Update (Maybe C.Selected)
@@ -151,8 +203,15 @@ updatePtrOnSpace ptrUpd mdl
                 transformer
                 mdl.interact.pointer
                 ptrUpd
+
+        {- Only add to the undo stack when first turning on.
+           This saves the state from before the pointer starts moving to the stack.
+           While in motion, only the present state is updated. -}
+        lifter = if Pointer.isTurningOn mdl.interact.pointer newPointerState
+            then liftBaseContentsNew
+            else liftBaseContents
     in
-        liftBaseContents (List.map mungeContent)
+        lifter (List.map mungeContent)
             <| liftInteract (updatePointer <| always newPointerState) mdl
 
 {-| Update the model when a content is selected. -}

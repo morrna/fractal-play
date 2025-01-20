@@ -3,6 +3,7 @@ module Command exposing (
         Message(..)
       , viewBar
       , update
+      , subscriptions
     )
 
 import Html.Styled as HS
@@ -11,6 +12,7 @@ import Css
 import List
 import Maybe
 import Svg.Styled as S
+import UndoList as U
 
 import Space
 import Space.Content as Content
@@ -25,6 +27,7 @@ import Command.Components exposing (
       , textButtonGroup
       , commandLabel
     )
+import Command.Keyboard as Keyboard
 
 {-| Interactions with the command controls outside the drawing space -}
 type Message
@@ -33,6 +36,7 @@ type Message
     | ChangeNumIterFrames Int
     | Reset Start.Which
     | UpdateOnlyShowLastLayer Bool
+    | UndoList (U.Msg ())
 
 {-| Display a vertical bar with controls for configuration.
     Currently this includes the maximum iteration depth and whether to show
@@ -42,27 +46,32 @@ viewBar
     : Space.Model
    -> List (HS.Html Message)
 viewBar {iterMode, baseContents}
-    = choice "Start from"
+    = textButtonGroup "Canvas State"
+        [
+            ("Undo", UndoList U.Undo)
+          , ("Redo", UndoList U.Redo)
+        ]
+        ++ choice "Start From"
             [
                 ("Sierpinski triangle", Reset Start.Sierpinski)
               , ("Dragon", Reset Start.Dragon)
               , ("Sierpinski carpet", Reset Start.SierpinskiCarpet)
             ]
-        ++ toggle "show iteration frames" ToggleShowIterFrames iterMode.showIterFrames
+        ++ toggle "Show Iteration Frames" ToggleShowIterFrames iterMode.showIterFrames
         ++ incrementer
-            { incrementerDefaults | label = "maximum iteration depth" , min = Just 0}
+            { incrementerDefaults | label = "Maximum Iteration Depth" , min = Just 0}
             ChangeIterationDepth
             iterMode.depth
         ++ layerVisibilityControls
         ++ incrementer
-            { incrementerDefaults | label = "# iteration frames" , min = Just 0}
+            { incrementerDefaults | label = "# Iteration Frames" , min = Just 0}
             ChangeNumIterFrames
-            (Content.numIterFrames baseContents)
+            (Content.numIterFrames baseContents.present)
         ++ iterFrameKey iterMode.showIterFrames
 
 layerVisibilityControls : List (HS.Html Message)
 layerVisibilityControls
-    = textButtonGroup "layer visibility"
+    = textButtonGroup "Layer Visibility"
         [
             ("Show All Layers", UpdateOnlyShowLastLayer False)
           , ("Show Last Layer", UpdateOnlyShowLastLayer True)
@@ -90,12 +99,13 @@ update msg model =
                 then Maybe.withDefault model <|
                     Maybe.map
                         (\iterFrameIDtoDrop -> { model |
-                            baseContents = Content.drop iterFrameIDtoDrop model.baseContents
+                            baseContents = U.new
+                                (Content.drop iterFrameIDtoDrop model.baseContents.present)
+                                model.baseContents
                         })
                         (getIterFrameIDtoDrop model)
                 else if change == 1
-                -- Iterframes are last in the list of baseContents, so just append a new one
-                then Space.addIterFrame (getNewIterFrameID model) (.defaultIterFrame) model
+                then Space.addIterFrameNew (getNewIterFrameID model) (.defaultIterFrame) model
                 else model
         Reset whichStart
             -> Start.get whichStart
@@ -103,6 +113,10 @@ update msg model =
             -> { model |
                 iterMode = IterFrame.updateOnlyShowLastLayer
                     newOnlyShowLastLayer model.iterMode
+            }
+        UndoList ulMsg
+            -> { model |
+                baseContents = U.update (always identity) ulMsg model.baseContents
             }
 
 {-| Get the ID of the iter frame to drop when the number of iter frames is
@@ -113,7 +127,7 @@ update msg model =
  -}
 getIterFrameIDtoDrop : Space.Model -> Maybe ID.TreeID
 getIterFrameIDtoDrop {baseContents}
-    = List.head <| List.reverse <| Content.getIterFrameIDs baseContents
+    = List.head <| List.reverse <| Content.getIterFrameIDs baseContents.present
 
 {-| Get an ID for a new IterFrame to add to the baseContents.
 
@@ -123,7 +137,7 @@ getIterFrameIDtoDrop {baseContents}
  -}
 getNewIterFrameID : Space.Model -> ID.TreeID
 getNewIterFrameID {baseContents}
-    = ID.Trunk <| "f" ++ String.fromInt (1 + Content.numIterFrames baseContents)
+    = ID.Trunk <| "f" ++ String.fromInt (1 + Content.numIterFrames baseContents.present)
 
 iterFrameKey
     : Bool
@@ -132,7 +146,7 @@ iterFrameKey showIterFrames
     = if showIterFrames
         then
         [
-            commandLabel "iteration frame controls"
+            commandLabel "Iteration Frame Controls"
           , S.svg
                 [
                     HSA.css
@@ -146,3 +160,6 @@ iterFrameKey showIterFrames
                 ]
         ]
         else []
+
+subscriptions : Sub Message
+subscriptions = Sub.map UndoList Keyboard.undoRedoSubscriptions
