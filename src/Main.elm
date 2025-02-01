@@ -32,7 +32,14 @@ viewWithHeaderFooter model =
             ]
         , HS.map Tutorial.SpaceMessage <| SC.view model.space
         , HS.footer []
-            [ HS.p [] [ HS.a [ HSA.href "LICENSE.txt" ] [ HS.text "© 2024 Nathan Morrison" ] ] ]
+            [ HS.p []
+                [ HS.a [ HSA.href "LICENSE.txt" ] [ HS.text "© 2024 Nathan Morrison" ]
+                , HS.text "·"
+                , HS.a [ HSA.href "https://github.com/morrna/fractal-play" ] [ HS.text "Source" ]
+                , HS.text "·"
+                , HS.a [ HSA.href "https://github.com/morrna/fractal-play/issues/new" ] [ HS.text "Feedback or ideas?" ]
+                ]
+            ]
         ]
 
 

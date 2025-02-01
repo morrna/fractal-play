@@ -69,3 +69,8 @@ select {
 .control-background {
     background-color: #d0f9fe;
 }
+
+footer a {
+    padding-left: 0.4rem;
+    padding-right: 0.4rem;
+}
