@@ -46,17 +46,12 @@ viewBar
     : Space.Model
    -> List (HS.Html Message)
 viewBar {iterMode, baseContents}
-    = textButtonGroup "Canvas State"
+    = choice "Start From"
         [
-            ("Undo", UndoList U.Undo)
-          , ("Redo", UndoList U.Redo)
+            ("Sierpinski triangle", Reset Start.Sierpinski)
+          , ("Dragon", Reset Start.Dragon)
+          , ("Sierpinski carpet", Reset Start.SierpinskiCarpet)
         ]
-        ++ choice "Start From"
-            [
-                ("Sierpinski triangle", Reset Start.Sierpinski)
-              , ("Dragon", Reset Start.Dragon)
-              , ("Sierpinski carpet", Reset Start.SierpinskiCarpet)
-            ]
         ++ toggle "Show Iteration Frames" ToggleShowIterFrames iterMode.showIterFrames
         ++ incrementer
             { incrementerDefaults | label = "Maximum Iteration Depth" , min = Just 0}
@@ -68,6 +63,11 @@ viewBar {iterMode, baseContents}
             ChangeNumIterFrames
             (Content.numIterFrames baseContents.present)
         ++ iterFrameKey
+        ++ textButtonGroup "Canvas State"
+            [
+                ("Undo", UndoList U.Undo)
+              , ("Redo", UndoList U.Redo)
+            ]
 
 layerVisibilityControls : List (HS.Html Message)
 layerVisibilityControls
@@ -149,7 +149,10 @@ iterFrameKey
                     [
                         Css.marginLeft (Css.px 16)
                       , Css.marginRight (Css.px 16)
-                    ]
+                      -- Correct for extra whitespace in the SVG
+                      , Css.marginBottom (Css.px -20)
+                    ],
+                HSA.height 110
             ]
             [
                 IterFrame.showKey
