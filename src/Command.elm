@@ -67,7 +67,7 @@ viewBar {iterMode, baseContents}
             { incrementerDefaults | label = "# Iteration Frames" , min = Just 0}
             ChangeNumIterFrames
             (Content.numIterFrames baseContents.present)
-        ++ iterFrameKey iterMode.showIterFrames
+        ++ iterFrameKey
 
 layerVisibilityControls : List (HS.Html Message)
 layerVisibilityControls
@@ -139,27 +139,22 @@ getNewIterFrameID : Space.Model -> ID.TreeID
 getNewIterFrameID {baseContents}
     = ID.Trunk <| "f" ++ String.fromInt (1 + Content.numIterFrames baseContents.present)
 
+iterFrameKey : List (HS.Html msg)
 iterFrameKey
-    : Bool
-   -> List (HS.Html msg)
-iterFrameKey showIterFrames
-    = if showIterFrames
-        then
-        [
-            commandLabel "Iteration Frame Controls"
-          , S.svg
-                [
-                    HSA.css
-                        [
-                            Css.marginLeft (Css.px 16)
-                          , Css.marginRight (Css.px 16)
-                        ]
-                ]
-                [
-                    IterFrame.showKey
-                ]
-        ]
-        else []
+    = [
+        commandLabel "Iteration Frame Controls"
+      , S.svg
+            [
+                HSA.css
+                    [
+                        Css.marginLeft (Css.px 16)
+                      , Css.marginRight (Css.px 16)
+                    ]
+            ]
+            [
+                IterFrame.showKey
+            ]
+    ]
 
 subscriptions : Sub Message
 subscriptions = Sub.map UndoList Keyboard.undoRedoSubscriptions
