@@ -1,5 +1,6 @@
 module Main exposing ( main )
 
+import Html
 import Html.Styled as HS
 import Html.Styled.Attributes as HSA
 import Css
@@ -9,13 +10,24 @@ import Command as SC
 import Tutorial
 
 main : Program () Tutorial.WrapModel Tutorial.WrapMessage
-main = B.element {
-        init = \_ -> (Tutorial.wrapInit, Cmd.none)
-      , view = HS.toUnstyled << viewWithHeaderFooter
+main = B.application {
+        init = \_ _ key -> (Tutorial.wrapInit key, Cmd.none)
+      , view = documentWrapper << HS.toUnstyled << viewWithHeaderFooter
       , update = \msg model -> (update msg model, Cmd.none)
       , subscriptions = \_ -> Sub.map Tutorial.SpaceMessage SC.subscriptions
+      , onUrlChange = \_ -> Debug.todo "onUrlChange"
+      , onUrlRequest = \_ -> Debug.todo "onUrlRequest"
     }
 
+{-! Wrap the HTML view in a document object, specifying the page title. -}
+documentWrapper
+    : Html.Html msg
+    -> B.Document msg
+documentWrapper contents
+    = {
+        title = "Fractal Play"
+      , body = [contents]
+    }
 
 {-| Main view, including header and tutorial.
     This is defined here because things like the header should be owned by Main.

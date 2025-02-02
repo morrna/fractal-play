@@ -16,6 +16,7 @@ import List
 import Maybe
 import Svg.Styled as S
 import UndoList as U
+import Browser.Navigation as Nav
 
 import Space
 import Space.Content as Content
@@ -41,11 +42,12 @@ type alias Model = {
 
 {-| Initial combined state. -}
 init
-    : Model
-init
+    : Nav.Key
+   -> Model
+init key
     = {
         space = Start.get Start.Sierpinski,
-        command = { showBookmark = False }
+        command = { showBookmark = False, navKey = key }
     }
 
 {-| Lift a function over the space model to the combined state. -}
@@ -59,6 +61,7 @@ liftCommand f model = { model | command = f model.command }
 {-| State specific to the command bar. -}
 type alias CommandModel = {
         showBookmark : Bool
+      , navKey : Nav.Key
     }
 
 {-| Combined message for command and space. -}

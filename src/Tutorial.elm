@@ -15,6 +15,7 @@ import Html.Styled.Events as HSE
 import Css
 import Maybe
 import UndoList as U
+import Browser.Navigation as Nav
 
 import Tutorial.Sequence as TS
 import Space
@@ -89,9 +90,10 @@ wrapLiftCache f
     = wrapLiftTutorial (\m -> { m | cache = f m.cache })
 
 {-| Combined starting state for tutorial and space. -}
-wrapInit : WrapModel
-wrapInit = {
-        sc = SC.init
+wrapInit : Nav.Key -> WrapModel
+wrapInit key
+    = {
+        sc = SC.init key
       , tutorial = init
     }
 
