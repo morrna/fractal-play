@@ -30,7 +30,7 @@ viewWithHeaderFooter model =
                 [ HS.text "Fractal Play" ]
             , HS.map Tutorial.TutorialMessage <| Tutorial.view model.tutorial
             ]
-        , HS.map Tutorial.SpaceMessage <| SC.view model.space
+        , HS.map Tutorial.SpaceMessage <| SC.view model.sc
         , HS.footer []
             [ HS.p []
                 [ HS.a [ HSA.href "LICENSE.txt" ] [ HS.text "© 2024 Nathan Morrison" ]
@@ -45,7 +45,7 @@ viewWithHeaderFooter model =
 
 {-| Update that redirects messages to the right component. -}
 update : Tutorial.WrapMessage -> Tutorial.WrapModel -> Tutorial.WrapModel
-update message model
+update message
   = case message of
-        Tutorial.SpaceMessage msg -> { model | space = SC.update msg model.space }
-        Tutorial.TutorialMessage msg -> Tutorial.update msg model
+        Tutorial.SpaceMessage msg -> Tutorial.wrapLiftSC <| SC.update msg
+        Tutorial.TutorialMessage msg -> Tutorial.update msg

@@ -1,6 +1,8 @@
 {- Control the drawing space from outside -}
 module Command exposing (
-        init
+        Model
+      , init
+      , liftSpace
       , Message
       , view
       , update
@@ -30,11 +32,29 @@ import Command.Components exposing (
     )
 import Command.Keyboard as Keyboard
 
+{-| Combined state for the command bar and the svg space. -}
+type alias Model = {
+        space : Space.Model
+    , command : CommandModel
+    }
+
 {-| Initial combined state. -}
 init
-    : Space.Model
+    : Model
 init
-    = Start.get Start.Sierpinski
+    = {
+        space = Start.get Start.Sierpinski,
+        command = { showBookmark = False }
+    }
+
+{-| Lift a function over the space model to the combined state. -}
+liftSpace : (Space.Model -> Space.Model) -> Model -> Model
+liftSpace f model = { model | space = f model.space }
+
+{-| State specific to the command bar. -}
+type alias CommandModel = {
+        showBookmark : Bool
+    }
 
 {-| Combined message for command and space. -}
 type Message
@@ -52,15 +72,15 @@ type CommandMessage
 
 {-| Combined view for space with the command bar. -}
 view
-    : Space.Model
+    : Model
    -> HS.Html Message
 view model
     = HS.div [HSA.css [Css.displayFlex], HSA.class "space-command-container"]
         [
             HS.div [HSA.class "space-container"]
-                [HS.map SpaceMessage <| Space.view model]
+                [HS.map SpaceMessage <| Space.view model.space]
           , HS.div [HSA.class "command-bar"]
-                <| List.map (HS.map CommandMessage) <| viewBar model
+                <| List.map (HS.map CommandMessage) <| viewBar model.space
         ]
 
 {-| Display a vertical bar with controls for configuration.
@@ -107,54 +127,55 @@ layerVisibilityControls
  -}
 update
     : Message
-   -> Space.Model
-   -> Space.Model
+   -> Model
+   -> Model
 update message
     = case message of
-        SpaceMessage msg -> Space.update msg
+        SpaceMessage msg -> liftSpace <| Space.update msg
         CommandMessage msg -> updateCommand msg
 
 {-| Update the model based on events from the command controls. -}
 updateCommand
     : CommandMessage
-   -> Space.Model
-   -> Space.Model
-updateCommand msg model =
+   -> Model
+   -> Model
+updateCommand msg =
     case msg of
         ChangeIterationDepth change
-            -> { model |
-                iterMode = let oldIterMode = model.iterMode
-                    in { oldIterMode | depth = oldIterMode.depth + change }
-            }
+            -> liftSpace <| Space.liftIterMode (\iterMode
+                -> { iterMode | depth = iterMode.depth + change }
+            )
         ToggleShowIterFrames
-            -> { model |
-                iterMode = let oldIterMode = model.iterMode
-                    in { oldIterMode | showIterFrames = not oldIterMode.showIterFrames }
-            }
+            -> liftSpace <| Space.liftIterMode (\iterMode
+                -> { iterMode | showIterFrames = not iterMode.showIterFrames }
+            )
         ChangeNumIterFrames change
-            -> if change == -1
-                then Maybe.withDefault model <|
-                    Maybe.map
-                        (\iterFrameIDtoDrop -> { model |
-                            baseContents = U.new
-                                (Content.drop iterFrameIDtoDrop model.baseContents.present)
-                                model.baseContents
-                        })
-                        (getIterFrameIDtoDrop model)
-                else if change == 1
-                then Space.addIterFrameNew (getNewIterFrameID model) (.defaultIterFrame) model
-                else model
+            -> liftSpace <| changeNumIterFrames change
         Reset whichStart
-            -> Start.get whichStart
+            -> liftSpace <| always <| Start.get whichStart
         UpdateOnlyShowLastLayer newOnlyShowLastLayer
-            -> { model |
-                iterMode = IterFrame.updateOnlyShowLastLayer
-                    newOnlyShowLastLayer model.iterMode
-            }
+            -> liftSpace <| Space.liftIterMode
+                <| IterFrame.updateOnlyShowLastLayer newOnlyShowLastLayer
         UndoList ulMsg
-            -> { model |
-                baseContents = U.update (always identity) ulMsg model.baseContents
-            }
+            -> liftSpace <| Space.liftUndoList
+                <| U.update (always identity) ulMsg
+
+
+{-| Apply a change in the number of iter frames to Space.Model. -}
+changeNumIterFrames : Int -> Space.Model -> Space.Model
+changeNumIterFrames change model
+    = if change == -1
+        then Maybe.withDefault model <|
+            Maybe.map
+                (\iterFrameIDtoDrop -> { model |
+                    baseContents = U.new
+                        (Content.drop iterFrameIDtoDrop model.baseContents.present)
+                        model.baseContents
+                })
+                (getIterFrameIDtoDrop model)
+        else if change == 1
+        then Space.addIterFrameNew (getNewIterFrameID model) (.defaultIterFrame) model
+        else model
 
 {-| Get the ID of the iter frame to drop when the number of iter frames is
     reduced.
