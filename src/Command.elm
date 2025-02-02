@@ -31,6 +31,7 @@ import Command.Components exposing (
       , commandLabel
     )
 import Command.Keyboard as Keyboard
+import Command.Encoding as Encoding
 
 {-| Combined state for the command bar and the svg space. -}
 type alias Model = {
@@ -96,8 +97,10 @@ viewBar
     : Space.Model
    -> CommandModel
    -> List (HS.Html CommandMessage)
-viewBar {iterMode, baseContents} {showBookmark}
-    = choice "Start From"
+viewBar spaceModel {showBookmark}
+    = let
+        { iterMode, baseContents } = spaceModel
+    in choice "Start From"
         [
             ("Sierpinski triangle", Reset Start.Sierpinski)
           , ("Dragon", Reset Start.Dragon)
@@ -120,7 +123,7 @@ viewBar {iterMode, baseContents} {showBookmark}
               , ("Redo", UndoList U.Redo)
               , (if showBookmark then "Hide Bookmark" else "Show Bookmark", ToggleShowBookmark)
             ]
-        ++ viewBookmark showBookmark
+        ++ viewBookmark showBookmark spaceModel
 
 layerVisibilityControls : List (HS.Html CommandMessage)
 layerVisibilityControls
@@ -232,15 +235,15 @@ subscriptions = Sub.map (CommandMessage << UndoList) Keyboard.undoRedoSubscripti
 {-| Show the bookmark in an input field for easy copying.
     Only show if showBookmark is True.
  -}
-viewBookmark : Bool -> List (HS.Html CommandMessage)
-viewBookmark showBookmark
+viewBookmark : Bool -> Space.Model -> List (HS.Html CommandMessage)
+viewBookmark showBookmark spaceModel
     = if showBookmark
         then [
             HS.input
                 [
                     HSA.type_ "text"
                   , HSA.readonly True
-                  , HSA.value "Not yet implemented"
+                  , HSA.value (Encoding.getStateByteString spaceModel)
                 ]
                 []
         ]

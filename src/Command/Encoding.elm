@@ -1,14 +1,28 @@
 module Command.Encoding exposing (
+        getStateByteString
         -- Exposed for unit testing
-        encoderIterMode
+      , encoderIterMode
       , decoderIterMode
     )
 
 import Bytes as B
 import Bytes.Encode as BE
 import Bytes.Decode as BD
+import Base64.Encode as B64E
 
+import Space
 import Space.IterFrame as IterFrame
+
+{-| Get a base 64 encoded string for the current state. -}
+getStateByteString
+    : Space.Model
+   -> String
+getStateByteString model
+    = B64E.encode <| B64E.bytes <| getStateBytes model
+
+getStateBytes : Space.Model -> B.Bytes
+getStateBytes { iterMode }
+    = BE.encode <| encoderIterMode iterMode
 
 {-| Encoder for IterFrame.Mode
     Currently encodes depth, showIterFrames, and onlyShowLastLayer.
