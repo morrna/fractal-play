@@ -33,8 +33,7 @@ encoderIterMode : IterFrame.Mode -> BE.Encoder
 encoderIterMode mode
     = BE.sequence
         [ BE.unsignedInt8 mode.depth
-        , BE.unsignedInt8 (if mode.showIterFrames then 1 else 0)
-        , BE.unsignedInt8 (if mode.onlyShowLastLayer then 1 else 0)
+        , BE.unsignedInt8 (boolFlagsToInt [mode.showIterFrames, mode.onlyShowLastLayer])
         ]
 
 {-| Decode IterFrame.Mode from bytes. -}
@@ -42,13 +41,31 @@ decoderIterMode : BD.Decoder IterFrame.Mode
 decoderIterMode
     = let
         initMode = IterFrame.initMode
-        makeIM depth showIterFrames onlyShowLastLayer
-            = { initMode |
+        makeIM depth flagsInt
+            = let
+                flagList = intToBoolFlags 2 flagsInt
+                showIterFrames = Maybe.withDefault False (List.head flagList)
+                onlyShowLastLayer = Maybe.withDefault False (Maybe.andThen List.head (List.tail flagList))
+            in { initMode |
                 depth = depth
-              , showIterFrames = showIterFrames == 1
-              , onlyShowLastLayer = onlyShowLastLayer == 1
+              , showIterFrames = showIterFrames
+              , onlyShowLastLayer = onlyShowLastLayer
               }
-    in BD.map3 makeIM
+    in BD.map2 makeIM
         (BD.unsignedInt8)
         (BD.unsignedInt8)
-        (BD.unsignedInt8)
+
+{-| Encode a sequence of boolean flags in an integer, bitmask style. -}
+boolFlagsToInt : List Bool -> Int
+boolFlagsToInt flags
+    = List.foldr (\flag acc -> if flag then acc * 2 + 1 else acc * 2) 0 flags
+
+{-| Decode a sequence of boolean flags from an integer, bitmask style.
+    The first argument is the number of flags. If the number of flags is more than
+    the number of bits in the integer, the extra flags are False like you'd expect.
+ -}
+intToBoolFlags : Int -> Int -> List Bool
+intToBoolFlags numFlags int
+    = if numFlags > 0
+        then (remainderBy 2 int == 1) :: (intToBoolFlags (numFlags - 1) (int // 2))
+        else []
