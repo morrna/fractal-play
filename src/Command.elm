@@ -51,6 +51,10 @@ init
 liftSpace : (Space.Model -> Space.Model) -> Model -> Model
 liftSpace f model = { model | space = f model.space }
 
+{-| Lift a function over the command model to the combined state. -}
+liftCommand : (CommandModel -> CommandModel) -> Model -> Model
+liftCommand f model = { model | command = f model.command }
+
 {-| State specific to the command bar. -}
 type alias CommandModel = {
         showBookmark : Bool
@@ -69,6 +73,7 @@ type CommandMessage
     | Reset Start.Which
     | UpdateOnlyShowLastLayer Bool
     | UndoList (U.Msg ())
+    | ToggleShowBookmark
 
 {-| Combined view for space with the command bar. -}
 view
@@ -80,7 +85,7 @@ view model
             HS.div [HSA.class "space-container"]
                 [HS.map SpaceMessage <| Space.view model.space]
           , HS.div [HSA.class "command-bar"]
-                <| List.map (HS.map CommandMessage) <| viewBar model.space
+                <| List.map (HS.map CommandMessage) <| viewBar model.space model.command
         ]
 
 {-| Display a vertical bar with controls for configuration.
@@ -89,8 +94,9 @@ view model
  -}
 viewBar
     : Space.Model
+   -> CommandModel
    -> List (HS.Html CommandMessage)
-viewBar {iterMode, baseContents}
+viewBar {iterMode, baseContents} {showBookmark}
     = choice "Start From"
         [
             ("Sierpinski triangle", Reset Start.Sierpinski)
@@ -112,6 +118,7 @@ viewBar {iterMode, baseContents}
             [
                 ("Undo", UndoList U.Undo)
               , ("Redo", UndoList U.Redo)
+              , (if showBookmark then "Hide Bookmark" else "Show Bookmark", ToggleShowBookmark)
             ]
 
 layerVisibilityControls : List (HS.Html CommandMessage)
@@ -159,7 +166,8 @@ updateCommand msg =
         UndoList ulMsg
             -> liftSpace <| Space.liftUndoList
                 <| U.update (always identity) ulMsg
-
+        ToggleShowBookmark
+            -> liftCommand <| \command -> { command | showBookmark = not command.showBookmark }
 
 {-| Apply a change in the number of iter frames to Space.Model. -}
 changeNumIterFrames : Int -> Space.Model -> Space.Model
