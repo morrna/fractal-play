@@ -246,7 +246,7 @@ viewBookmark showBookmark spaceModel
                 [
                     HSA.type_ "text"
                   , HSA.readonly True
-                  , HSA.value (Encoding.getStateByteString spaceModel)
+                  , HSA.value (Encoding.encodeStateByteString spaceModel)
                 ]
                 []
         ]

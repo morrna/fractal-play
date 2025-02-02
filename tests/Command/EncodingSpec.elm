@@ -8,11 +8,14 @@ import Bytes.Decode as BD
 
 import Command.Encoding as CE
 import Space.IterFrame as IterFrame
+import Space
+import Start
 
 
 suite : T.Test
 suite = T.describe "module Command.Encoding" [
         iterModeEncodeDecode
+      , stateByteStringEncodeDecode
     ]
 
 iterModeEncodeDecode: T.Test
@@ -36,3 +39,22 @@ fuzzIterMode
         (F.intRange 0 63)
         F.bool
         F.bool
+
+stateByteStringEncodeDecode : T.Test
+stateByteStringEncodeDecode = T.fuzz fuzzState "Encode then decode stateByteString"
+    <| \state -> E.equal (Nothing, state)
+        (CE.decodeStateByteString state <| CE.encodeStateByteString state)
+
+fuzzState : F.Fuzzer Space.Model
+fuzzState
+    = F.map2
+        (\iterMode whichStart -> Space.liftIterMode (always iterMode) (Start.get whichStart))
+        fuzzIterMode
+        fuzzWhichStart
+
+fuzzWhichStart : F.Fuzzer Start.Which
+fuzzWhichStart = F.oneOfValues [
+        Start.Sierpinski
+      , Start.Dragon
+      , Start.SierpinskiCarpet
+    ]
