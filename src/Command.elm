@@ -120,6 +120,7 @@ viewBar {iterMode, baseContents} {showBookmark}
               , ("Redo", UndoList U.Redo)
               , (if showBookmark then "Hide Bookmark" else "Show Bookmark", ToggleShowBookmark)
             ]
+        ++ viewBookmark showBookmark
 
 layerVisibilityControls : List (HS.Html CommandMessage)
 layerVisibilityControls
@@ -227,3 +228,20 @@ iterFrameKey
 
 subscriptions : Sub Message
 subscriptions = Sub.map (CommandMessage << UndoList) Keyboard.undoRedoSubscriptions
+
+{-| Show the bookmark in an input field for easy copying.
+    Only show if showBookmark is True.
+ -}
+viewBookmark : Bool -> List (HS.Html CommandMessage)
+viewBookmark showBookmark
+    = if showBookmark
+        then [
+            HS.input
+                [
+                    HSA.type_ "text"
+                  , HSA.readonly True
+                  , HSA.value "Not yet implemented"
+                ]
+                []
+        ]
+        else []
