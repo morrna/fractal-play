@@ -78,6 +78,7 @@ type CommandMessage
     | UpdateOnlyShowLastLayer Bool
     | UndoList (U.Msg ())
     | ToggleShowBookmark
+    | ApplyBookmark String
 
 {-| Combined view for space with the command bar. -}
 view
@@ -175,6 +176,13 @@ updateCommand msg =
                 <| U.update (always identity) ulMsg
         ToggleShowBookmark
             -> liftCommand <| \command -> { command | showBookmark = not command.showBookmark }
+        ApplyBookmark bookmark
+            -> liftSpace <| \spaceModel ->
+                let
+                    (maybeError, newSpaceModel) = Encoding.decodeStateByteString spaceModel bookmark
+                in case maybeError of
+                    Just error -> Debug.log error newSpaceModel
+                    Nothing -> newSpaceModel
 
 {-| Apply a change in the number of iter frames to Space.Model. -}
 changeNumIterFrames : Int -> Space.Model -> Space.Model
