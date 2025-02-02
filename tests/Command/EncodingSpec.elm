@@ -33,6 +33,6 @@ fuzzIterMode
               , onlyShowLastLayer = onlyShowLastLayer
               }
     in F.map3 makeIM
-        (F.intRange 0 64)
+        (F.intRange 0 63)
         F.bool
         F.bool

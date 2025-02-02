@@ -6,8 +6,6 @@ import Test.Html.Selector as S
 import Test.Html.Event as E
 
 import Html.Styled as HS
-import List
-import Maybe
 
 import Command.Components exposing (
         toggle

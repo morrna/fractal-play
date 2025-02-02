@@ -31,29 +31,28 @@ getStateBytes { iterMode }
  -}
 encoderIterMode : IterFrame.Mode -> BE.Encoder
 encoderIterMode mode
-    = BE.sequence
-        [ BE.unsignedInt8 mode.depth
-        , BE.unsignedInt8 (boolFlagsToInt [mode.showIterFrames, mode.onlyShowLastLayer])
-        ]
+    = let
+        flagsInt = boolFlagsToInt [mode.showIterFrames, mode.onlyShowLastLayer]
+        {- Depth should never be more than 63, so we can combine these to a single unsignedInt8 -}
+    in BE.unsignedInt8 (mode.depth * 4 + flagsInt)
 
 {-| Decode IterFrame.Mode from bytes. -}
 decoderIterMode : BD.Decoder IterFrame.Mode
 decoderIterMode
     = let
         initMode = IterFrame.initMode
-        makeIM depth flagsInt
+        makeIM combinedInt
             = let
+                flagsInt = remainderBy 4 combinedInt
                 flagList = intToBoolFlags 2 flagsInt
                 showIterFrames = Maybe.withDefault False (List.head flagList)
                 onlyShowLastLayer = Maybe.withDefault False (Maybe.andThen List.head (List.tail flagList))
             in { initMode |
-                depth = depth
+                depth = combinedInt // 4
               , showIterFrames = showIterFrames
               , onlyShowLastLayer = onlyShowLastLayer
               }
-    in BD.map2 makeIM
-        (BD.unsignedInt8)
-        (BD.unsignedInt8)
+    in BD.map makeIM BD.unsignedInt8
 
 {-| Encode a sequence of boolean flags in an integer, bitmask style. -}
 boolFlagsToInt : List Bool -> Int
