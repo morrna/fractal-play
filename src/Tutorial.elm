@@ -17,7 +17,7 @@ import UndoList as U
 
 import Tutorial.Sequence as TS
 import Space
-import SpaceCommand as SC
+import Command as SC
 import Space.Content as Content
 
 {-| State for tutorial. -}

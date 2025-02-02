@@ -5,7 +5,7 @@ import Html.Styled.Attributes as HSA
 import Css
 import Browser as B
 
-import SpaceCommand as SC
+import Command as SC
 import Tutorial
 
 main : Program () Tutorial.WrapModel Tutorial.WrapMessage

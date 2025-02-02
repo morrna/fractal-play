@@ -1,7 +1,8 @@
 {- Control the drawing space from outside -}
 module Command exposing (
-        Message(..)
-      , viewBar
+        init
+      , Message
+      , view
       , update
       , subscriptions
     )
@@ -29,8 +30,19 @@ import Command.Components exposing (
     )
 import Command.Keyboard as Keyboard
 
-{-| Interactions with the command controls outside the drawing space -}
+{-| Initial combined state. -}
+init
+    : Space.Model
+init
+    = Start.get Start.Sierpinski
+
+{-| Combined message for command and space. -}
 type Message
+    = SpaceMessage Space.Message
+    | CommandMessage CommandMessage
+
+{-| Interactions with the command controls outside the drawing space -}
+type CommandMessage
     = ChangeIterationDepth Int
     | ToggleShowIterFrames
     | ChangeNumIterFrames Int
@@ -38,13 +50,26 @@ type Message
     | UpdateOnlyShowLastLayer Bool
     | UndoList (U.Msg ())
 
+{-| Combined view for space with the command bar. -}
+view
+    : Space.Model
+   -> HS.Html Message
+view model
+    = HS.div [HSA.css [Css.displayFlex], HSA.class "space-command-container"]
+        [
+            HS.div [HSA.class "space-container"]
+                [HS.map SpaceMessage <| Space.view model]
+          , HS.div [HSA.class "command-bar"]
+                <| List.map (HS.map CommandMessage) <| viewBar model
+        ]
+
 {-| Display a vertical bar with controls for configuration.
     Currently this includes the maximum iteration depth and whether to show
     the iteration frames.
  -}
 viewBar
     : Space.Model
-   -> List (HS.Html Message)
+   -> List (HS.Html CommandMessage)
 viewBar {iterMode, baseContents}
     = choice "Start From"
         [
@@ -69,7 +94,7 @@ viewBar {iterMode, baseContents}
               , ("Redo", UndoList U.Redo)
             ]
 
-layerVisibilityControls : List (HS.Html Message)
+layerVisibilityControls : List (HS.Html CommandMessage)
 layerVisibilityControls
     = textButtonGroup "Layer Visibility"
         [
@@ -77,12 +102,24 @@ layerVisibilityControls
           , ("Show Last Layer", UpdateOnlyShowLastLayer True)
         ]
 
-{-| Update the model based on events from the command controls. -}
+{-| Combined update function for space and command.
+    Passes each sub message to the appropriate update function.
+ -}
 update
     : Message
    -> Space.Model
    -> Space.Model
-update msg model =
+update message
+    = case message of
+        SpaceMessage msg -> Space.update msg
+        CommandMessage msg -> updateCommand msg
+
+{-| Update the model based on events from the command controls. -}
+updateCommand
+    : CommandMessage
+   -> Space.Model
+   -> Space.Model
+updateCommand msg model =
     case msg of
         ChangeIterationDepth change
             -> { model |
@@ -160,4 +197,4 @@ iterFrameKey
     ]
 
 subscriptions : Sub Message
-subscriptions = Sub.map UndoList Keyboard.undoRedoSubscriptions
+subscriptions = Sub.map (CommandMessage << UndoList) Keyboard.undoRedoSubscriptions
