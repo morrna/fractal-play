@@ -16,6 +16,7 @@
             "elm-community/undo-redo": "3.0.0",
             "justgook/alt-linear-algebra": "2.0.0",
             "mpizenberg/elm-pointer-events": "4.0.2",
+            "prozacchiwawa/elm-urlbase64": "1.0.6",
             "rtfeldman/elm-css": "18.0.0"
         },
         "indirect": {

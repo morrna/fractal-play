@@ -9,6 +9,7 @@ import Bytes as B
 import Bytes.Encode as BE
 import Bytes.Decode as BD
 import Base64.Encode as B64E
+import UrlBase64
 
 import Space
 import Space.IterFrame as IterFrame
@@ -18,7 +19,8 @@ getStateByteString
     : Space.Model
    -> String
 getStateByteString model
-    = B64E.encode <| B64E.bytes <| getStateBytes model
+    = Result.withDefault "Failed to encode"
+        <| UrlBase64.encode (Result.Ok << B64E.encode << B64E.bytes << getStateBytes) model
 
 getStateBytes : Space.Model -> B.Bytes
 getStateBytes { iterMode }
