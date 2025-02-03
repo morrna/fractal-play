@@ -7,6 +7,8 @@ module Command exposing (
       , view
       , update
       , subscriptions
+      , commandMessageApplyBookmark
+      , applyBookmark
     )
 
 import Html.Styled as HS
@@ -79,6 +81,12 @@ type CommandMessage
     | UndoList (U.Msg ())
     | ToggleShowBookmark
     | ApplyBookmark String
+
+{-| Message for applying a bookmark.
+    Exposing for use in Main. There's not a reason to expose the rest of the messages.
+ -}
+commandMessageApplyBookmark : String -> Message
+commandMessageApplyBookmark = CommandMessage << ApplyBookmark
 
 {-| Combined view for space with the command bar. -}
 view
@@ -177,12 +185,7 @@ updateCommand msg =
         ToggleShowBookmark
             -> liftCommand <| \command -> { command | showBookmark = not command.showBookmark }
         ApplyBookmark bookmark
-            -> liftSpace <| \spaceModel ->
-                let
-                    (maybeError, newSpaceModel) = Encoding.decodeStateByteString spaceModel bookmark
-                in case maybeError of
-                    Just error -> Debug.log error newSpaceModel
-                    Nothing -> newSpaceModel
+            -> applyBookmark bookmark
 
 {-| Apply a change in the number of iter frames to Space.Model. -}
 changeNumIterFrames : Int -> Space.Model -> Space.Model
@@ -259,3 +262,15 @@ viewBookmark showBookmark spaceModel
                 []
         ]
         else []
+
+{-| Update the space model with the state encoded in the bookmark string.
+    Returns the updated model, logging any errors that occur during decoding
+    to the console.
+-}
+applyBookmark : String -> Model -> Model
+applyBookmark bookmark = liftSpace <| \spaceModel ->
+    let
+        (maybeError, newSpaceModel) = Encoding.decodeStateByteString spaceModel bookmark
+    in case maybeError of
+        Just error -> Debug.log (error ++ " " ++ bookmark) newSpaceModel
+        Nothing -> newSpaceModel

@@ -5,19 +5,35 @@ import Html.Styled as HS
 import Html.Styled.Attributes as HSA
 import Css
 import Browser as B
+import Browser.Navigation as BN
+import Url
+import Url.Parser as UP exposing ((</>))
+import Url.Parser.Query as UQ
 
 import Command as SC
 import Tutorial
 
-main : Program () Tutorial.WrapModel Tutorial.WrapMessage
+main : Program () Tutorial.WrapModel (Maybe Tutorial.WrapMessage)
 main = B.application {
-        init = \_ _ key -> (Tutorial.wrapInit key, Cmd.none)
-      , view = documentWrapper << HS.toUnstyled << viewWithHeaderFooter
+        init = \_ url key -> (initModel url key, Cmd.none)
+      , view = documentWrapper << HS.toUnstyled << HS.map (Just) << viewWithHeaderFooter
       , update = \msg model -> (update msg model, Cmd.none)
-      , subscriptions = \_ -> Sub.map Tutorial.SpaceMessage SC.subscriptions
-      , onUrlChange = \_ -> Debug.todo "onUrlChange"
-      , onUrlRequest = \_ -> Debug.todo "onUrlRequest"
+      , subscriptions = \_ -> Sub.map (Just << Tutorial.SpaceMessage) SC.subscriptions
+      , onUrlChange = urlToMessage
+      , onUrlRequest = \urlRequest -> case urlRequest of
+            B.Internal url -> urlToMessage url
+            B.External s -> Debug.log s Nothing
     }
+
+{-| Initialize the model from a URL and save the navigation key for later use. -}
+initModel : Url.Url -> BN.Key -> Tutorial.WrapModel
+initModel url key =
+    Tutorial.wrapLiftSC
+        (Maybe.withDefault identity
+            <| Maybe.map SC.applyBookmark
+                <| tryUrlByteString url
+        )
+        (Tutorial.wrapInit key)
 
 {-! Wrap the HTML view in a document object, specifying the page title. -}
 documentWrapper
@@ -56,8 +72,35 @@ viewWithHeaderFooter model =
 
 
 {-| Update that redirects messages to the right component. -}
-update : Tutorial.WrapMessage -> Tutorial.WrapModel -> Tutorial.WrapModel
-update message
-  = case message of
-        Tutorial.SpaceMessage msg -> Tutorial.wrapLiftSC <| SC.update msg
-        Tutorial.TutorialMessage msg -> Tutorial.update msg
+update : Maybe Tutorial.WrapMessage -> Tutorial.WrapModel -> Tutorial.WrapModel
+update
+  = Maybe.withDefault identity
+    << Maybe.map ( \message ->
+            case message of
+                Tutorial.SpaceMessage msg -> Tutorial.wrapLiftSC <| SC.update msg
+                Tutorial.TutorialMessage msg -> Tutorial.update msg
+        )
+
+{-| Get a message for a given internal URL event. -}
+urlToMessage
+    : Url.Url
+   -> Maybe Tutorial.WrapMessage
+urlToMessage url
+    = Maybe.map (Tutorial.SpaceMessage << SC.commandMessageApplyBookmark)
+        <| tryUrlByteString url
+
+{-| Get a candidate bytestring from the URL if there is one. -}
+tryUrlByteString
+    : Url.Url
+   -> Maybe String
+tryUrlByteString url
+    = Maybe.withDefault Nothing
+        (UP.parse urlParser url)
+
+urlParser : UP.Parser (Maybe String -> a) a
+urlParser = UP.oneOf [
+        {- index.html needs to be explicitly matched for testing with elm reactor -}
+        UP.s "index.html" </> UP.query (UQ.string "")
+      , UP.top </> UP.query (UQ.string "")
+      , UP.query (UQ.string "")
+    ]
