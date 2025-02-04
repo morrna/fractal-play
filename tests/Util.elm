@@ -40,15 +40,15 @@ compareLists
     -> List a -- actual
     -> E.Expectation
 compareLists comp lExp lAct
-    = if List.length lExp == List.length lAct
+    = E.all ((always <| E.equal (List.length lExp) (List.length lAct))
+        :: (List.map2 (((<<) always) << comp) lExp lAct)
+    ) ()
     {- `all` has a funny form that's super frustrating for zipping list expectations together!
         It requires a list of mappings from a single value, rather than a list of expectation results.
         The workaround here is to make that 'single value' unit and then wrap the result we want in a
         function that ignores its argument.
         There should really be something like compareLists in the standard Expect library.
      -}
-    then E.all (List.map2 ((<<) ((<<) always) comp) lExp lAct) ()
-    else E.fail "compared lists have unequal length"
 
 compareGeoDefs
     : (G.Point -> G.Point -> E.Expectation) -- comparison between points
@@ -75,7 +75,7 @@ compareGeoDefs comp dExp dAct
 centerRadiusToCompPts
     : G.Point -> Float -> List G.Point
 centerRadiusToCompPts p f
-    = p::[pointForFloatComp p f]
+    = [p, pointForFloatComp p f]
 
 {-| Because comparison is defined as between points,
     plain floats need to be converted into points to be compared. -}

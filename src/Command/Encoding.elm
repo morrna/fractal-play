@@ -4,6 +4,12 @@ module Command.Encoding exposing (
         -- Exposed for unit testing
       , encoderIterMode
       , decoderIterMode
+      , encoderPoint
+      , decoderPoint
+      , encoderBasicShape
+      , decoderBasicShape
+      , encoderContentList
+      , decoderContentList
     )
 
 import Bytes as B
@@ -12,9 +18,16 @@ import Bytes.Decode as BD
 import Base64.Encode as B64E
 import Base64.Decode as B64D
 import UrlBase64
+import UndoList as U
 
 import Space
+import Space.Frame as Frame
 import Space.IterFrame as IterFrame
+import Geometry as G
+import Space.Shape as Shape
+import Space.Content as Content
+import Space.TreeID as ID
+import Start
 
 {-| Get a base 64 encoded string for the current state. -}
 encodeStateByteString
@@ -25,8 +38,12 @@ encodeStateByteString model
         <| UrlBase64.encode (Result.Ok << B64E.encode << B64E.bytes << encodeStateBytes) model
 
 encodeStateBytes : Space.Model -> B.Bytes
-encodeStateBytes { iterMode }
-    = BE.encode <| encoderIterMode iterMode
+encodeStateBytes { iterMode, baseContents }
+    = BE.encode <| BE.sequence
+        [
+            encoderIterMode iterMode
+          , encoderContentList baseContents.present
+        ]
 
 {-| Apply the state from a base 64 encoded string to the model.
     Not everything in the model is encoded, so pass in the current model
@@ -77,9 +94,12 @@ decoderModel
     : Space.Model
    -> BD.Decoder Space.Model
 decoderModel spaceModel
-    = BD.map
-        (\iterMode -> { spaceModel | iterMode = iterMode })
+    = BD.map2
+        (\iterMode contents -> { spaceModel |
+            iterMode = iterMode, baseContents = U.fresh contents
+        })
         decoderIterMode
+        decoderContentList
 
 {-| Encoder for IterFrame.Mode
     Currently encodes depth, showIterFrames, and onlyShowLastLayer.
@@ -125,3 +145,121 @@ intToBoolFlags numFlags int
     = if numFlags > 0
         then (remainderBy 2 int == 1) :: (intToBoolFlags (numFlags - 1) (int // 2))
         else []
+
+{- # Encoding points
+
+    The smallest float encoder offered by the `Bytes` library is 32 bits, or 4 bytes.
+    This is more detail than we really need. Even if people can see subpixel detail,
+    that's still only 1 part in about 10^4, which is about 1 in 2^13. Let's keep things
+    simple and use 16 bits for each coordinate.
+
+    The base unit will come from the size of the view box, which specified by Space.outerFrame.
+    Things can move off the edge of the view box some, so let's use 4 times the largest view box
+    dimension as maximum allowed coordinate. The granularity will be 1/2^16 of that maximum.
+ -}
+
+coordUnit : Float
+coordUnit = 4 * max (Frame.width Space.outerFrame) (Frame.height Space.outerFrame) / 65536
+
+toCoordUnit : Float -> Int
+toCoordUnit c = round <| c / coordUnit
+
+fromCoordUnit : Int -> Float
+fromCoordUnit = (*) coordUnit << toFloat
+
+encoderPoint : G.Point -> BE.Encoder
+encoderPoint {x, y}
+    = BE.sequence
+        [
+            BE.signedInt16 B.BE <| toCoordUnit x
+          , BE.signedInt16 B.BE <| toCoordUnit y
+        ]
+
+decoderPoint : BD.Decoder G.Point
+decoderPoint
+    = BD.map2 G.point
+        (BD.map fromCoordUnit (BD.signedInt16 B.BE))
+        (BD.map fromCoordUnit (BD.signedInt16 B.BE))
+
+{-| Encode a polygonal starting shape.
+
+The color is not encoded, because so far it has only been blue,
+and we want to make the encoded representation as short as possible.
+See the note on the extension bit in the comment for `encoderContentList`
+for an idea of how to selectively break this assumption.
+
+The first return value is the number of points in the polygon.
+The second is the encoder for the points.
+ -}
+encoderBasicShape : Shape.Def -> BE.Encoder
+encoderBasicShape {geoDef}
+    = case geoDef of
+        G.Polygon ps -> BE.sequence
+            <| BE.unsignedInt8 (List.length ps) :: List.map encoderPoint ps
+        _ -> BE.sequence [] -- Not currently implemented
+
+decoderBasicShape : BD.Decoder Shape.Def
+decoderBasicShape
+    = let
+        decoderPointList n
+            = if n > 0
+                then BD.map2 (::) decoderPoint (decoderPointList (n - 1))
+                else BD.succeed []
+    in BD.andThen
+        ((BD.map (\ps -> { geoDef = G.Polygon ps, fill = Start.blue })) << decoderPointList)
+        BD.unsignedInt8
+
+
+{-| Encode a content list.
+
+Because the list of base shapes is expected to be very short, usually 1,
+and the list of iteration frames is not that long, at most 8 in the current
+presets, both counts can be encoded in a single byte. The plan is
+
+    0 (extension bit) .. 7 (base shape count) .. 15 (iteration frame count)
+
+The extension bit will always be 0 in the current version. Future versions
+may set it and then use a completely different scheme of assumptions.
+
+The content IDs will not be encoded. They can just be generated when decoding.
+ -}
+encoderContentList : List Content.Content -> BE.Encoder
+encoderContentList contents
+    = let
+        (shapesOrig, iterFramesOrig) = Content.partitionContentDefs contents
+        -- Limit the number of shapes to 7, and the number of iter frames to 15
+        shapes = List.take 7 shapesOrig
+        iterFrames = List.take 15 iterFramesOrig
+        controlByte = (List.length shapes) * 16 + (List.length iterFrames)
+    in BE.sequence
+        [
+            BE.unsignedInt8 controlByte
+          , BE.sequence (List.map encoderBasicShape shapes)
+        -- to do: , BE.sequence (List.map (encoderIterFrame << .def) iterFrames)
+        ]
+
+decoderContentList : BD.Decoder (List Content.Content)
+decoderContentList
+    = BD.andThen
+        (\(extensionOn, controlByteTail)
+            -> if extensionOn
+                then BD.fail
+                else let
+                        shapesCount = controlByteTail // 16
+                        iterFramesCount = remainderBy 16 controlByteTail
+                    in BD.map2 (++)
+                        (decoderBasicShapes shapesCount)
+                        (BD.succeed []) -- To do: decoderIterFrames iterFramesCount
+        )
+        (BD.map
+            (\controlByte -> (controlByte // 128 == 1, remainderBy 128 controlByte))
+            BD.unsignedInt8
+        )
+
+decoderBasicShapes : Int -> BD.Decoder (List Content.Content)
+decoderBasicShapes count
+    = if count > 0
+        then BD.map2 (::)
+            (BD.map (Content.makeShape (ID.Trunk <| "s" ++ String.fromInt count)) decoderBasicShape)
+            (decoderBasicShapes (count - 1))
+        else BD.succeed []
