@@ -75,10 +75,15 @@ footer a {
     padding-right: 0.4rem;
 }
 
-.command-bar input {
+.command-bar textarea {
     width: 280px;
     padding: 0.2rem 0.4rem;
     margin-top: 0.4rem;
     margin-bottom: 0.4rem;
     border-radius: 0.2rem;
+}
+
+.bookmark-field {
+    height: 6rem;
+    resize: none;
 }

@@ -255,9 +255,9 @@ viewBookmark : Bool -> String -> Space.Model -> List (HS.Html CommandMessage)
 viewBookmark showBookmark topURL spaceModel
     = if showBookmark
         then [
-            HS.input
+            HS.textarea
                 [
-                    HSA.type_ "text"
+                    HSA.class "bookmark-field"
                   , HSA.readonly True
                   , HSA.value (
                         topURL
