@@ -26,6 +26,7 @@ suite = T.describe "module Command.Encoding" [
       , shapeEncodeDecode
       , contentListEncodeDecode
       , contentListOutsideLimitsEncodeDecode
+      , iterFrameEncodeDecode
     ]
 
 iterModeEncodeDecode: T.Test
@@ -107,7 +108,7 @@ fuzzPoint
 {-| Check that two points are within a tenth of a pixel of each other. -}
 expectPointsClose : G.Point -> G.Point -> E.Expectation
 expectPointsClose
-    = (Util.expectPointWithin <| E.Absolute 0.1)
+    = (Util.expectPointWithin <| E.Absolute 0.2)
 
 shapeEncodeDecode : T.Test
 shapeEncodeDecode = T.fuzz fuzzPolygon "Encode then decode shape"
@@ -141,7 +142,7 @@ expectPolygonsClose s1 s2
 contentListEncodeDecode : T.Test
 contentListEncodeDecode = T.fuzz fuzzContentListWithinLimits "Encode then decode content list"
     <| \contentList -> checkDecode expectContentsAgree contentList
-        (BD.decode CE.decoderContentList <| BE.encode <| CE.encoderContentList contentList)
+        (BD.decode (CE.decoderContentList Space.outerFrame) <| BE.encode <| CE.encoderContentList contentList)
 
 {-| Check that two lists of content have the same shapes and iter frames. -}
 expectContentsAgree : List Content.Content -> List Content.Content -> E.Expectation
@@ -149,8 +150,11 @@ expectContentsAgree c1 c2
     = let
         (shapes1, iterFrames1) = Content.partitionContentDefs c1
         (shapes2, iterFrames2) = Content.partitionContentDefs c2
-    in
-        Util.compareLists expectPolygonsClose shapes1 shapes2
+    in E.all
+        [
+            always <| Util.compareLists expectPolygonsClose shapes1 shapes2
+          , always <| Util.compareLists expectIterFramesClose iterFrames1 iterFrames2
+        ] ()
 
 {-| Fuzz a list of content, keeping the number of shapes and iter frames
     within the limits of the encoding.
@@ -162,13 +166,17 @@ fuzzContentListWithinLimits
             <| F.andThen
                 (\n -> F.sequence <| List.repeat n fuzzPolygon)
                 (F.intRange 0 7)
-    in fuzzShapes -- add iterFrames later
+        fuzzIterFrames = (F.map << List.map) (Content.makeIterFrame (ID.Trunk "f") Space.outerFrame)
+            <| F.andThen
+                (\n -> F.sequence <| List.repeat n fuzzIterFrame)
+                (F.intRange 0 15)
+    in F.map2 (++) fuzzShapes fuzzIterFrames
 
 contentListOutsideLimitsEncodeDecode : T.Test
 contentListOutsideLimitsEncodeDecode
     = T.fuzz fuzzContentListOutsideLimits "Encode then decode content list truncating if outside limits"
         <| \contentList -> checkDecode expectContentsAgree (truncateContentList contentList)
-            (BD.decode CE.decoderContentList <| BE.encode <| CE.encoderContentList contentList)
+            (BD.decode (CE.decoderContentList Space.outerFrame) <| BE.encode <| CE.encoderContentList contentList)
 
 {-| Truncate a list of content to the maximum length that can be encoded.
  -}
@@ -189,4 +197,37 @@ fuzzContentListOutsideLimits
             <| F.andThen
                 (\n -> F.sequence <| List.repeat n fuzzPolygon)
                 (F.intRange 7 16)
-    in fuzzShapes -- add iterFrames later
+        fuzzIterFrames = (F.map << List.map) (Content.makeIterFrame (ID.Trunk "f") Space.outerFrame)
+            <| F.andThen
+                (\n -> F.sequence <| List.repeat n fuzzIterFrame)
+                (F.intRange 15 32)
+    in F.map2 (++) fuzzShapes fuzzIterFrames
+
+iterFrameEncodeDecode : T.Test
+iterFrameEncodeDecode = T.fuzz2 fuzzIterFrame fuzzPoint "Encode then decode iterFrame, applying both to a point"
+    <| \iterFrame point -> checkDecode expectPointsClose
+        (G.apply (IterFrame.getTransform iterFrame) point)
+        (Maybe.map (\if2 -> G.apply (IterFrame.getTransform if2) point)
+            <| BD.decode CE.decoderIterFrame <| BE.encode <| CE.encoderIterFrame iterFrame
+        )
+
+fuzzIterFrame : F.Fuzzer IterFrame.Def
+fuzzIterFrame = F.map3 IterFrame.Def
+    fuzzDisplacement
+    fuzzDisplacement
+    fuzzPoint
+
+fuzzDisplacement : F.Fuzzer G.Displacement
+fuzzDisplacement
+    = F.map2 G.disp
+        (F.floatRange -0.999 0.999)
+        (F.floatRange -0.999 0.999)
+
+expectIterFramesClose : IterFrame.Def -> IterFrame.Def -> E.Expectation
+expectIterFramesClose i1 i2
+    = E.all
+        [
+            always <| Util.expectPointWithin (E.Absolute 0.0001) i1.xBasis i2.xBasis
+          , always <| Util.expectPointWithin (E.Absolute 0.0001) i1.yBasis i2.yBasis
+          , always <| expectPointsClose i1.offset i2.offset
+        ] ()

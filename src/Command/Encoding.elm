@@ -10,6 +10,8 @@ module Command.Encoding exposing (
       , decoderBasicShape
       , encoderContentList
       , decoderContentList
+      , encoderIterFrame
+      , decoderIterFrame
     )
 
 import Bytes as B
@@ -99,7 +101,7 @@ decoderModel spaceModel
             iterMode = iterMode, baseContents = U.fresh contents
         })
         decoderIterMode
-        decoderContentList
+        (decoderContentList spaceModel.referenceFrame)
 
 {-| Encoder for IterFrame.Mode
     Currently encodes depth, showIterFrames, and onlyShowLastLayer.
@@ -146,18 +148,6 @@ intToBoolFlags numFlags int
         then (remainderBy 2 int == 1) :: (intToBoolFlags (numFlags - 1) (int // 2))
         else []
 
-{- # Encoding points
-
-    The smallest float encoder offered by the `Bytes` library is 32 bits, or 4 bytes.
-    This is more detail than we really need. Even if people can see subpixel detail,
-    that's still only 1 part in about 10^4, which is about 1 in 2^13. Let's keep things
-    simple and use 16 bits for each coordinate.
-
-    The base unit will come from the size of the view box, which specified by Space.outerFrame.
-    Things can move off the edge of the view box some, so let's use 4 times the largest view box
-    dimension as maximum allowed coordinate. The granularity will be 1/2^16 of that maximum.
- -}
-
 coordUnit : Float
 coordUnit = 4 * max (Frame.width Space.outerFrame) (Frame.height Space.outerFrame) / 65536
 
@@ -167,6 +157,17 @@ toCoordUnit c = round <| c / coordUnit
 fromCoordUnit : Int -> Float
 fromCoordUnit = (*) coordUnit << toFloat
 
+{-| Encode points
+
+The smallest float encoder offered by the `Bytes` library is 32 bits, or 4 bytes.
+This is more detail than we really need. Even if people can see subpixel detail,
+that's still only 1 part in about 10^4, which is about 1 in 2^13. Let's keep things
+simple and use 16 bits for each coordinate.
+
+The base unit will come from the size of the view box, which specified by Space.outerFrame.
+Things can move off the edge of the view box some, so let's use 4 times the largest view box
+dimension as maximum allowed coordinate. The granularity will be 1/2^16 of that maximum.
+ -}
 encoderPoint : G.Point -> BE.Encoder
 encoderPoint {x, y}
     = BE.sequence
@@ -235,11 +236,11 @@ encoderContentList contents
         [
             BE.unsignedInt8 controlByte
           , BE.sequence (List.map encoderBasicShape shapes)
-        -- to do: , BE.sequence (List.map (encoderIterFrame << .def) iterFrames)
+          , BE.sequence (List.map encoderIterFrame iterFrames)
         ]
 
-decoderContentList : BD.Decoder (List Content.Content)
-decoderContentList
+decoderContentList : Frame.Def -> BD.Decoder (List Content.Content)
+decoderContentList frameDef
     = BD.andThen
         (\(extensionOn, controlByteTail)
             -> if extensionOn
@@ -249,7 +250,7 @@ decoderContentList
                         iterFramesCount = remainderBy 16 controlByteTail
                     in BD.map2 (++)
                         (decoderBasicShapes shapesCount)
-                        (BD.succeed []) -- To do: decoderIterFrames iterFramesCount
+                        (decoderIterFrames frameDef iterFramesCount)
         )
         (BD.map
             (\controlByte -> (controlByte // 128 == 1, remainderBy 128 controlByte))
@@ -262,4 +263,66 @@ decoderBasicShapes count
         then BD.map2 (::)
             (BD.map (Content.makeShape (ID.Trunk <| "s" ++ String.fromInt count)) decoderBasicShape)
             (decoderBasicShapes (count - 1))
+        else BD.succeed []
+
+{-| Encode matrix elements
+
+Matrix elements are essentially ratios of coordinate values, so they need to be
+discretized differently than points. If we want to multiply a coordinate on the
+order of 1000 pixels and have it wind up within 0.1 pixels of the true result,
+the ratio needs to be discretized to about 1 part in 10^4. 1 part in 2^15 is
+enough to represent 1 part in 10^4, and that maps nicely onto a signedInt16.
+
+All matrix elements for IFS fractals should be less than 1 in absolute value,
+because they always make the input smaller. Because of this, we can just encode
+(-1, 1).
+ -}
+encoderMatrixElement : Float -> BE.Encoder
+encoderMatrixElement el
+    = BE.signedInt16 B.BE <| truncate <| el * twoToThe15
+
+twoToThe15 : Float
+twoToThe15 = 32768
+
+decoderMatrixElement : BD.Decoder Float
+decoderMatrixElement
+    = BD.map (\i -> toFloat i / twoToThe15) (BD.signedInt16 B.BE)
+
+encoderDisplacement : G.Displacement -> BE.Encoder
+encoderDisplacement {x, y}
+    = BE.sequence
+        [
+            encoderMatrixElement x
+          , encoderMatrixElement y
+        ]
+
+decoderDisplacement : BD.Decoder G.Displacement
+decoderDisplacement
+    = BD.map2 G.disp
+        decoderMatrixElement
+        decoderMatrixElement
+
+{-| Encode iteration frames -}
+encoderIterFrame : IterFrame.Def -> BE.Encoder
+encoderIterFrame {xBasis, yBasis, offset}
+    = BE.sequence
+        [
+            encoderDisplacement xBasis
+          , encoderDisplacement yBasis
+          , encoderPoint offset
+        ]
+
+decoderIterFrame : BD.Decoder IterFrame.Def
+decoderIterFrame
+    = BD.map3 IterFrame.Def
+        decoderDisplacement
+        decoderDisplacement
+        decoderPoint
+
+decoderIterFrames : Frame.Def -> Int -> BD.Decoder (List Content.Content)
+decoderIterFrames frameDef count
+    = if count > 0
+        then BD.map2 (::)
+            (BD.map (Content.makeIterFrame (ID.Trunk <| "f" ++ String.fromInt count) frameDef) decoderIterFrame)
+            (decoderIterFrames frameDef (count - 1))
         else BD.succeed []
