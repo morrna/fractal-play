@@ -45,11 +45,12 @@ type alias Model = {
 {-| Initial combined state. -}
 init
     : Nav.Key
+   -> String
    -> Model
-init key
+init key topURL
     = {
         space = Start.get Start.Sierpinski,
-        command = { showBookmark = False, navKey = key }
+        command = { showBookmark = False, navKey = key, topURL = topURL }
     }
 
 {-| Lift a function over the space model to the combined state. -}
@@ -64,6 +65,7 @@ liftCommand f model = { model | command = f model.command }
 type alias CommandModel = {
         showBookmark : Bool
       , navKey : Nav.Key
+      , topURL : String
     }
 
 {-| Combined message for command and space. -}
@@ -109,7 +111,7 @@ viewBar
     : Space.Model
    -> CommandModel
    -> List (HS.Html CommandMessage)
-viewBar spaceModel {showBookmark}
+viewBar spaceModel {showBookmark, topURL}
     = let
         { iterMode, baseContents } = spaceModel
     in choice "Start From"
@@ -135,7 +137,7 @@ viewBar spaceModel {showBookmark}
               , ("Redo", UndoList U.Redo)
               , (if showBookmark then "Hide Bookmark" else "Show Bookmark", ToggleShowBookmark)
             ]
-        ++ viewBookmark showBookmark spaceModel
+        ++ viewBookmark showBookmark topURL spaceModel
 
 layerVisibilityControls : List (HS.Html CommandMessage)
 layerVisibilityControls
@@ -249,15 +251,19 @@ subscriptions = Sub.map (CommandMessage << UndoList) Keyboard.undoRedoSubscripti
 {-| Show the bookmark in an input field for easy copying.
     Only show if showBookmark is True.
  -}
-viewBookmark : Bool -> Space.Model -> List (HS.Html CommandMessage)
-viewBookmark showBookmark spaceModel
+viewBookmark : Bool -> String -> Space.Model -> List (HS.Html CommandMessage)
+viewBookmark showBookmark topURL spaceModel
     = if showBookmark
         then [
             HS.input
                 [
                     HSA.type_ "text"
                   , HSA.readonly True
-                  , HSA.value (Encoding.encodeStateByteString spaceModel)
+                  , HSA.value (
+                        topURL
+                      ++ "?="
+                      ++ Encoding.encodeStateByteString spaceModel
+                    )
                 ]
                 []
         ]

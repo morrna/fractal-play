@@ -90,10 +90,10 @@ wrapLiftCache f
     = wrapLiftTutorial (\m -> { m | cache = f m.cache })
 
 {-| Combined starting state for tutorial and space. -}
-wrapInit : Nav.Key -> WrapModel
-wrapInit key
+wrapInit : Nav.Key -> String -> WrapModel
+wrapInit key topURL
     = {
-        sc = SC.init key
+        sc = SC.init key topURL
       , tutorial = init
     }
 

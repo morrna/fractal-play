@@ -33,7 +33,16 @@ initModel url key =
             <| Maybe.map SC.applyBookmark
                 <| tryUrlByteString url
         )
-        (Tutorial.wrapInit key)
+        (Tutorial.wrapInit key (topUrl url))
+
+topUrl : Url.Url -> String
+topUrl url
+    = let
+        protocol = case url.protocol of
+            Url.Http -> "http"
+            Url.Https -> "https"
+        hostString = url.host ++ Maybe.withDefault "" (Maybe.map (\p -> ":" ++ String.fromInt p) url.port_)
+    in protocol ++ "://" ++ hostString ++ url.path
 
 {-! Wrap the HTML view in a document object, specifying the page title. -}
 documentWrapper
