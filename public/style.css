@@ -46,7 +46,7 @@ footer {
 }
 
 .command-label {
-    margin-top: 1.5rem;
+    margin-top: 1.2rem;
     margin-bottom: 0.5rem;
 }
 
@@ -73,4 +73,17 @@ select {
 footer a {
     padding-left: 0.4rem;
     padding-right: 0.4rem;
+}
+
+.command-bar textarea {
+    width: 280px;
+    padding: 0.2rem 0.4rem;
+    margin-top: 0.4rem;
+    margin-bottom: 0.4rem;
+    border-radius: 0.2rem;
+}
+
+.bookmark-field {
+    height: 6rem;
+    resize: none;
 }

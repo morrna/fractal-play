@@ -1,9 +1,14 @@
 {- Control the drawing space from outside -}
 module Command exposing (
-        Message(..)
-      , viewBar
+        Model
+      , init
+      , liftSpace
+      , Message
+      , view
       , update
       , subscriptions
+      , commandMessageApplyBookmark
+      , applyBookmark
     )
 
 import Html.Styled as HS
@@ -13,6 +18,7 @@ import List
 import Maybe
 import Svg.Styled as S
 import UndoList as U
+import Browser.Navigation as Nav
 
 import Space
 import Space.Content as Content
@@ -28,15 +34,74 @@ import Command.Components exposing (
       , commandLabel
     )
 import Command.Keyboard as Keyboard
+import Command.Encoding as Encoding
+
+{-| Combined state for the command bar and the svg space. -}
+type alias Model = {
+        space : Space.Model
+    , command : CommandModel
+    }
+
+{-| Initial combined state. -}
+init
+    : Nav.Key
+   -> String
+   -> Model
+init key topURL
+    = {
+        space = Start.get Start.Sierpinski,
+        command = { showBookmark = False, navKey = key, topURL = topURL }
+    }
+
+{-| Lift a function over the space model to the combined state. -}
+liftSpace : (Space.Model -> Space.Model) -> Model -> Model
+liftSpace f model = { model | space = f model.space }
+
+{-| Lift a function over the command model to the combined state. -}
+liftCommand : (CommandModel -> CommandModel) -> Model -> Model
+liftCommand f model = { model | command = f model.command }
+
+{-| State specific to the command bar. -}
+type alias CommandModel = {
+        showBookmark : Bool
+      , navKey : Nav.Key
+      , topURL : String
+    }
+
+{-| Combined message for command and space. -}
+type Message
+    = SpaceMessage Space.Message
+    | CommandMessage CommandMessage
 
 {-| Interactions with the command controls outside the drawing space -}
-type Message
+type CommandMessage
     = ChangeIterationDepth Int
     | ToggleShowIterFrames
     | ChangeNumIterFrames Int
     | Reset Start.Which
     | UpdateOnlyShowLastLayer Bool
     | UndoList (U.Msg ())
+    | ToggleShowBookmark
+    | ApplyBookmark String
+
+{-| Message for applying a bookmark.
+    Exposing for use in Main. There's not a reason to expose the rest of the messages.
+ -}
+commandMessageApplyBookmark : String -> Message
+commandMessageApplyBookmark = CommandMessage << ApplyBookmark
+
+{-| Combined view for space with the command bar. -}
+view
+    : Model
+   -> HS.Html Message
+view model
+    = HS.div [HSA.css [Css.displayFlex], HSA.class "space-command-container"]
+        [
+            HS.div [HSA.class "space-container"]
+                [HS.map SpaceMessage <| Space.view model.space]
+          , HS.div [HSA.class "command-bar"]
+                <| List.map (HS.map CommandMessage) <| viewBar model.space model.command
+        ]
 
 {-| Display a vertical bar with controls for configuration.
     Currently this includes the maximum iteration depth and whether to show
@@ -44,19 +109,17 @@ type Message
  -}
 viewBar
     : Space.Model
-   -> List (HS.Html Message)
-viewBar {iterMode, baseContents}
-    = textButtonGroup "Canvas State"
+   -> CommandModel
+   -> List (HS.Html CommandMessage)
+viewBar spaceModel {showBookmark, topURL}
+    = let
+        { iterMode, baseContents } = spaceModel
+    in choice "Start From"
         [
-            ("Undo", UndoList U.Undo)
-          , ("Redo", UndoList U.Redo)
+            ("Sierpinski triangle", Reset Start.Sierpinski)
+          , ("Dragon", Reset Start.Dragon)
+          , ("Sierpinski carpet", Reset Start.SierpinskiCarpet)
         ]
-        ++ choice "Start From"
-            [
-                ("Sierpinski triangle", Reset Start.Sierpinski)
-              , ("Dragon", Reset Start.Dragon)
-              , ("Sierpinski carpet", Reset Start.SierpinskiCarpet)
-            ]
         ++ toggle "Show Iteration Frames" ToggleShowIterFrames iterMode.showIterFrames
         ++ incrementer
             { incrementerDefaults | label = "Maximum Iteration Depth" , min = Just 0}
@@ -67,9 +130,16 @@ viewBar {iterMode, baseContents}
             { incrementerDefaults | label = "# Iteration Frames" , min = Just 0}
             ChangeNumIterFrames
             (Content.numIterFrames baseContents.present)
-        ++ iterFrameKey iterMode.showIterFrames
+        ++ iterFrameKey
+        ++ textButtonGroup "Canvas State"
+            [
+                ("Undo", UndoList U.Undo)
+              , ("Redo", UndoList U.Redo)
+              , (if showBookmark then "Hide Bookmark" else "Show Bookmark", ToggleShowBookmark)
+            ]
+        ++ viewBookmark showBookmark topURL spaceModel
 
-layerVisibilityControls : List (HS.Html Message)
+layerVisibilityControls : List (HS.Html CommandMessage)
 layerVisibilityControls
     = textButtonGroup "Layer Visibility"
         [
@@ -77,47 +147,63 @@ layerVisibilityControls
           , ("Show Last Layer", UpdateOnlyShowLastLayer True)
         ]
 
-{-| Update the model based on events from the command controls. -}
+{-| Combined update function for space and command.
+    Passes each sub message to the appropriate update function.
+ -}
 update
     : Message
-   -> Space.Model
-   -> Space.Model
-update msg model =
+   -> Model
+   -> Model
+update message
+    = case message of
+        SpaceMessage msg -> liftSpace <| Space.update msg
+        CommandMessage msg -> updateCommand msg
+
+{-| Update the model based on events from the command controls. -}
+updateCommand
+    : CommandMessage
+   -> Model
+   -> Model
+updateCommand msg =
     case msg of
         ChangeIterationDepth change
-            -> { model |
-                iterMode = let oldIterMode = model.iterMode
-                    in { oldIterMode | depth = oldIterMode.depth + change }
-            }
+            -> liftSpace <| Space.liftIterMode (\iterMode
+                -> { iterMode | depth = iterMode.depth + change }
+            )
         ToggleShowIterFrames
-            -> { model |
-                iterMode = let oldIterMode = model.iterMode
-                    in { oldIterMode | showIterFrames = not oldIterMode.showIterFrames }
-            }
+            -> liftSpace <| Space.liftIterMode (\iterMode
+                -> { iterMode | showIterFrames = not iterMode.showIterFrames }
+            )
         ChangeNumIterFrames change
-            -> if change == -1
-                then Maybe.withDefault model <|
-                    Maybe.map
-                        (\iterFrameIDtoDrop -> { model |
-                            baseContents = U.new
-                                (Content.drop iterFrameIDtoDrop model.baseContents.present)
-                                model.baseContents
-                        })
-                        (getIterFrameIDtoDrop model)
-                else if change == 1
-                then Space.addIterFrameNew (getNewIterFrameID model) (.defaultIterFrame) model
-                else model
+            -> liftSpace <| changeNumIterFrames change
         Reset whichStart
-            -> Start.get whichStart
+            -> liftSpace <| always <| Start.get whichStart
         UpdateOnlyShowLastLayer newOnlyShowLastLayer
-            -> { model |
-                iterMode = IterFrame.updateOnlyShowLastLayer
-                    newOnlyShowLastLayer model.iterMode
-            }
+            -> liftSpace <| Space.liftIterMode
+                <| IterFrame.updateOnlyShowLastLayer newOnlyShowLastLayer
         UndoList ulMsg
-            -> { model |
-                baseContents = U.update (always identity) ulMsg model.baseContents
-            }
+            -> liftSpace <| Space.liftUndoList
+                <| U.update (always identity) ulMsg
+        ToggleShowBookmark
+            -> liftCommand <| \command -> { command | showBookmark = not command.showBookmark }
+        ApplyBookmark bookmark
+            -> applyBookmark bookmark
+
+{-| Apply a change in the number of iter frames to Space.Model. -}
+changeNumIterFrames : Int -> Space.Model -> Space.Model
+changeNumIterFrames change model
+    = if change == -1
+        then Maybe.withDefault model <|
+            Maybe.map
+                (\iterFrameIDtoDrop -> { model |
+                    baseContents = U.new
+                        (Content.drop iterFrameIDtoDrop model.baseContents.present)
+                        model.baseContents
+                })
+                (getIterFrameIDtoDrop model)
+        else if change == 1
+        then Space.addIterFrameNew (getNewIterFrameID model) (.defaultIterFrame) model
+        else model
 
 {-| Get the ID of the iter frame to drop when the number of iter frames is
     reduced.
@@ -139,27 +225,58 @@ getNewIterFrameID : Space.Model -> ID.TreeID
 getNewIterFrameID {baseContents}
     = ID.Trunk <| "f" ++ String.fromInt (1 + Content.numIterFrames baseContents.present)
 
+iterFrameKey : List (HS.Html msg)
 iterFrameKey
-    : Bool
-   -> List (HS.Html msg)
-iterFrameKey showIterFrames
-    = if showIterFrames
-        then
-        [
-            commandLabel "Iteration Frame Controls"
-          , S.svg
+    = [
+        commandLabel "Iteration Frame Controls"
+      , S.svg
+            [
+                HSA.css
+                    [
+                        Css.marginLeft (Css.px 16)
+                      , Css.marginRight (Css.px 16)
+                      -- Correct for extra whitespace in the SVG
+                      , Css.marginBottom (Css.px -20)
+                    ],
+                HSA.height 110
+            ]
+            [
+                IterFrame.showKey
+            ]
+    ]
+
+subscriptions : Sub Message
+subscriptions = Sub.map (CommandMessage << UndoList) Keyboard.undoRedoSubscriptions
+
+{-| Show the bookmark in an input field for easy copying.
+    Only show if showBookmark is True.
+ -}
+viewBookmark : Bool -> String -> Space.Model -> List (HS.Html CommandMessage)
+viewBookmark showBookmark topURL spaceModel
+    = if showBookmark
+        then [
+            HS.textarea
                 [
-                    HSA.css
-                        [
-                            Css.marginLeft (Css.px 16)
-                          , Css.marginRight (Css.px 16)
-                        ]
+                    HSA.class "bookmark-field"
+                  , HSA.readonly True
+                  , HSA.value (
+                        topURL
+                      ++ "?="
+                      ++ Encoding.encodeStateByteString spaceModel
+                    )
                 ]
-                [
-                    IterFrame.showKey
-                ]
+                []
         ]
         else []
 
-subscriptions : Sub Message
-subscriptions = Sub.map UndoList Keyboard.undoRedoSubscriptions
+{-| Update the space model with the state encoded in the bookmark string.
+    Returns the updated model, logging any errors that occur during decoding
+    to the console.
+-}
+applyBookmark : String -> Model -> Model
+applyBookmark bookmark = liftSpace <| \spaceModel ->
+    let
+        (maybeError, newSpaceModel) = Encoding.decodeStateByteString spaceModel bookmark
+    in case maybeError of
+        Just error -> Debug.log (error ++ " " ++ bookmark) newSpaceModel
+        Nothing -> newSpaceModel

@@ -3,6 +3,7 @@ module Tutorial exposing (
       , Model
       , WrapModel
       , wrapInit
+      , wrapLiftSC
       , Message(..)
       , WrapMessage(..)
       , update
@@ -14,10 +15,11 @@ import Html.Styled.Events as HSE
 import Css
 import Maybe
 import UndoList as U
+import Browser.Navigation as Nav
 
 import Tutorial.Sequence as TS
 import Space
-import SpaceCommand as SC
+import Command as SC
 import Space.Content as Content
 
 {-| State for tutorial. -}
@@ -55,7 +57,7 @@ modelLiftSequence f model
 {-| Combined model for tutorial and space. -}
 type alias WrapModel
     = {
-        space : Space.Model
+        sc : SC.Model
       , tutorial : Model
     }
 
@@ -66,12 +68,19 @@ wrapLiftTutorial
 wrapLiftTutorial f model
     = { model | tutorial = f model.tutorial }
 
+{-| Convenient helper to update space and command state. -}
+wrapLiftSC
+    : (SC.Model -> SC.Model)
+   -> (WrapModel -> WrapModel)
+wrapLiftSC f model
+    = { model | sc = f model.sc }
+
 {-| Convenient helper to update space state. -}
 wrapLiftSpace
     : (Space.Model -> Space.Model)
    -> (WrapModel -> WrapModel)
-wrapLiftSpace f model
-    = { model | space = f model.space }
+wrapLiftSpace
+    = wrapLiftSC << SC.liftSpace
 
 {-| Convenient helper to update cache state. -}
 wrapLiftCache
@@ -81,9 +90,10 @@ wrapLiftCache f
     = wrapLiftTutorial (\m -> { m | cache = f m.cache })
 
 {-| Combined starting state for tutorial and space. -}
-wrapInit : WrapModel
-wrapInit = {
-        space = SC.init
+wrapInit : Nav.Key -> String -> WrapModel
+wrapInit key topURL
+    = {
+        sc = SC.init key topURL
       , tutorial = init
     }
 
@@ -141,22 +151,22 @@ isEmptyHiddenContent cache =
 cacheAndModifySpace : (Space.Model -> Space.Model) -> WrapModel -> WrapModel
 cacheAndModifySpace modifier model
     = let
-        newSpaceModel = modifier model.space
+        newSpaceModel = SC.liftSpace modifier model.sc
         oldCache = model.tutorial.cache
 
         -- Only update the parts of cache that are empty
         newCache = {
             hiddenContent = if isEmptyHiddenContent oldCache
                 then Just (List.filter
-                    (\content -> not <| List.member content newSpaceModel.baseContents.present)
-                    model.space.baseContents.present)
+                    (\content -> not <| List.member content newSpaceModel.space.baseContents.present)
+                    model.sc.space.baseContents.present)
                 else oldCache.hiddenContent
           }
 
         oldTutorial = model.tutorial
       in { model |
             tutorial = { oldTutorial | cache = newCache }
-          , space = newSpaceModel
+          , sc = newSpaceModel
         }
 
 {-| Restore the hidden frames from cache. -}

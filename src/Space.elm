@@ -9,6 +9,8 @@ module Space exposing (
       , update
       , setIterationDepth
       , outerFrame
+      , liftIterMode
+      , liftUndoList
     )
 
 import Html.Styled as HS
@@ -243,3 +245,11 @@ showReferenceFrame model =
 {-| Set the iteration depth on a model. -}
 setIterationDepth : Int -> Model -> Model
 setIterationDepth depth model = { model | iterMode = IterFrame.setIterationDepth depth model.iterMode }
+
+{-| Lift a function over the iterMode to the model. -}
+liftIterMode : (IterFrame.Mode -> IterFrame.Mode) -> Model -> Model
+liftIterMode f model = { model | iterMode = f model.iterMode }
+
+{-| Lift a function over the undo list to the model. -}
+liftUndoList : (U.UndoList (List C.Content) -> U.UndoList (List C.Content)) -> Model -> Model
+liftUndoList f model = { model | baseContents = f model.baseContents }

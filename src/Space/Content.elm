@@ -10,6 +10,7 @@ module Space.Content exposing (
       , getIterFrameIDs
       , Selected
       , action
+      , partitionContentDefs
     )
 
 import Svg.Styled as S
@@ -226,3 +227,20 @@ actOnIterFrame t mi
                         (always ifDef)
                         mi
         _ -> mi.payload
+
+{-| Get the base shape and IterFrame definitions from a list of Content.
+    IterShapes are not included, because they should only exist during the rendering.
+    IDs are also not included.
+ -}
+partitionContentDefs
+    : List Content
+   -> (List Shape.Def, List IterFrame.Def)
+partitionContentDefs contents
+    = case contents of
+        [] -> ([], [])
+        c :: cs -> case c.def of
+            Shape s -> let (ss, ifs) = partitionContentDefs cs
+                in (s :: ss, ifs)
+            IterFrame _ i -> let (ss, ifs) = partitionContentDefs cs
+                in (ss, i :: ifs)
+            IterShape _ -> partitionContentDefs cs

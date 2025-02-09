@@ -11,6 +11,7 @@ module Space.IterFrame exposing (
       , setIterationDepth
       , updateIterationDepth
       , updateOnlyShowLastLayer
+      , getTransform
     )
 
 import Svg.Styled as S
@@ -328,7 +329,7 @@ allButLastLayerHidden iterationDepth
 setIterationDepth : Int -> Mode -> Mode
 setIterationDepth depth mode = { mode | depth = depth }
 
-{-| Update the iteration depth. 
+{-| Update the iteration depth.
     The first argument is the change in depth.
  -}
 updateIterationDepth

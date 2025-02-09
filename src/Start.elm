@@ -2,6 +2,7 @@ module Start exposing (
         Which(..)
       , get
       , sierpinskiTransform
+      , blue
     )
 
 import Color as Clr
