@@ -101,6 +101,7 @@ urlParser : UP.Parser (Maybe String -> a) a
 urlParser = UP.oneOf [
         {- index.html needs to be explicitly matched for testing with elm reactor -}
         UP.s "index.html" </> UP.query (UQ.string "")
+      , UP.s "dist" </> UP.s "index.html" </> UP.query (UQ.string "")
       , UP.top </> UP.query (UQ.string "")
       , UP.query (UQ.string "")
     ]
