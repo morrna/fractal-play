@@ -8,7 +8,6 @@
     "build": "cp -R public/* dist/ && cp LICENSE dist/ && npx elm make src/Main.elm --output=dist/fractal-play.js",
     "test": "npx elm-test",
     "preview": "npx http-server dist",
-    "reactor": "npx elm reactor",
-    "postinstall": "npx elm install"
+    "reactor": "npx elm reactor"
   }
 }
