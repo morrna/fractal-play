@@ -19,13 +19,10 @@ jobs:
         steps:
             - uses: actions/checkout@v4
             - uses: actions/setup-node@v4
-            - run: npm install --global elm-tooling
-
-            - name: Copy static files
-              run: mkdir -p dist && cp -r public/* dist/ && cp LICENSE dist/LICENSE.txt
+            - run: npm install
 
             - name: Build
-              run: npx elm make src/Main.elm --output=dist/fractal-play.js
+              run: npm run build
             
             - name: Upload
               uses: actions/upload-pages-artifact@v3

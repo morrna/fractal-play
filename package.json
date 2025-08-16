@@ -1,0 +1,14 @@
+{
+  "devDependencies": {
+    "elm": "^0.19.1-6",
+    "elm-test": "^0.19.1-revision16",
+    "http-server": "^14.1.1"
+  },
+  "scripts": {
+    "build": "cp -R public/* dist/ && cp LICENSE dist/ && npx elm make src/Main.elm --output=dist/fractal-play.js",
+    "test": "npx elm-test",
+    "preview": "npx http-server dist",
+    "reactor": "npx elm reactor",
+    "postinstall": "npx elm install"
+  }
+}
