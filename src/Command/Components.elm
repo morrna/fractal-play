@@ -18,10 +18,13 @@ import Css
 import Json.Decode as JD
 
 {-| Common heading for command controls -}
-commandLabel : String -> HS.Html msg
-commandLabel text =
+commandLabel
+    : List (HS.Attribute msg)
+   -> String
+   -> HS.Html msg
+commandLabel attrs text =
     HS.h4
-        [ HSA.class "command-label" ]
+        ( HSA.class "command-label" :: attrs)
         [ HS.text text ]
 
 incrementer
@@ -31,7 +34,7 @@ incrementer
    -> List (HS.Html msg)
 incrementer settings sendIncrement current
     = [
-        commandLabel settings.label
+        commandLabel [] settings.label
       , HS.span [] [
             HS.button
                 (
@@ -111,7 +114,7 @@ toggle label sendToggle current
             = if current then "on" else "off"
     in
     [
-        commandLabel label
+        commandLabel [] label
       , HS.button [HSE.onClick sendToggle, pressed, style] [HS.text labelText]
     ]
 
@@ -125,7 +128,7 @@ choice label choices
         (labels, messages) = List.unzip choices
         (values, onChange) = onChangeDiscrete messages
     in [
-        commandLabel label
+        commandLabel [] label
       , HS.select [HSA.class "control-background", onChange]
             <| List.map2
                 (\val lbl ->
@@ -168,7 +171,7 @@ textButtonGroup
 textButtonGroup header buttons
     = [
         HS.div [ HSA.css [Css.marginTop (Css.px 10)] ]
-            (commandLabel header
+            (commandLabel [] header
                 :: List.map
                     (\(label, msg) ->
                         HS.button

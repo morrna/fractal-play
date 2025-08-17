@@ -17,6 +17,7 @@ import Css
 import List
 import Maybe
 import Svg.Styled as S
+import Svg.Styled.Attributes as SSA
 import UndoList as U
 import Browser.Navigation as Nav
 
@@ -228,7 +229,7 @@ getNewIterFrameID {baseContents}
 iterFrameKey : List (HS.Html msg)
 iterFrameKey
     = [
-        commandLabel "Iteration Frame Controls"
+        commandLabel [HSA.class "mobile-optional"] "Iteration Frame Controls"
       , S.svg
             [
                 HSA.css
@@ -238,7 +239,8 @@ iterFrameKey
                       -- Correct for extra whitespace in the SVG
                       , Css.marginBottom (Css.px -20)
                     ],
-                HSA.height 110
+                HSA.height 110,
+                SSA.class "mobile-optional"
             ]
             [
                 IterFrame.showKey

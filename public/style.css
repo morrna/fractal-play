@@ -116,3 +116,9 @@ footer a {
         font-size: 0.75rem;
     }
 }
+
+@media (max-height: 432px) {
+    .mobile-optional {
+        display: none;
+    }
+}
