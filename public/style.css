@@ -88,6 +88,10 @@ footer a {
     resize: none;
 }
 
+.hide-me {
+    display: none;
+}
+
 @media (max-width: 900px) {
     .space-container {
         margin: 5px;
@@ -120,5 +124,14 @@ footer a {
 @media (max-height: 432px) {
     .mobile-optional {
         display: none;
+    }
+
+    .header {
+        flex: 0 0 50px; /* Even smaller header in landscape */
+        position: absolute;
+    }
+
+    .header h1 {
+        font-size: 0.9rem;
     }
 }
