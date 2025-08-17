@@ -108,19 +108,20 @@ view model
         shouldDisplay = case current of
             Just _ -> True
             Nothing -> False
+        hideMe = if shouldDisplay
+            then []
+            else [HSA.class "hide-me"]
       in HS.div
-        [
+        ( hideMe ++ [
             HSA.class "control-background"
+          , HSA.class "mobile-optional"
           , HSA.css
                 [ Css.padding (Css.rem 1)
                 , Css.borderRadius (Css.rem 0.5)
                 , Css.maxWidth (Css.rem 80)
-                , (if shouldDisplay
-                    then Css.display Css.block
-                    else Css.display Css.none)
                 ]
           , HSE.onClick Advance
-        ]
+        ])
         -- map for type only
         [ HS.map (always Advance) message ]
 
