@@ -122,14 +122,17 @@ footer a {
     }
 }
 
-@media (max-height: 432px) {
+/* Disable scrolling on touchscreen devices */
+@media (pointer: coarse) {
     html, body {
         overflow: hidden;
         position: fixed;
         width: 100%;
         height: 100%;
     }
+}
 
+@media (max-height: 432px) {
     .mobile-optional {
         display: none;
     }
