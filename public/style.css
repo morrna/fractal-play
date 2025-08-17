@@ -87,3 +87,32 @@ footer a {
     height: 6rem;
     resize: none;
 }
+
+@media (max-width: 900px) {
+    .space-container {
+        margin: 5px;
+    }
+
+    .command-bar {
+        flex: 0 0 200px; /* Narrower sidebar on mobile */
+        margin: 5px;
+        font-size: 0.8rem;
+    }
+
+    .command-bar button,
+    .command-bar select {
+        font-size: 0.8rem;
+        padding: 0.15rem 0.3rem;
+    }
+
+    .command-label {
+        margin-top: 0.4rem;
+        margin-bottom: 0.1rem;
+        font-size: 0.6rem;
+    }
+
+    .command-bar textarea {
+        width: 180px; /* Adjust for narrower sidebar */
+        font-size: 0.75rem;
+    }
+}
