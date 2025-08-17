@@ -3,6 +3,7 @@ body {
     margin: 0;
 }
 
+
 #inner-root {
     display: flex;
     flex-direction: column;
@@ -122,6 +123,13 @@ footer a {
 }
 
 @media (max-height: 432px) {
+    html, body {
+        overflow: hidden;
+        position: fixed;
+        width: 100%;
+        height: 100%;
+    }
+
     .mobile-optional {
         display: none;
     }
